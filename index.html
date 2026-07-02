@@ -78,28 +78,28 @@
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
             } catch (e) {
-                console.log("Помилка відтворення звуку:", e);
+                console.log("Помилка звуку:", e);
             }
         }
 
-        // Низький і потужний звук гонгу
+        // Подвійний ГОНГ (Початок/кінець раунду)
         function playGong() { 
             playBeep(200, 0.8, "sawtooth", 0.4); 
             setTimeout(() => playBeep(205, 0.8, "sine", 0.4), 80); 
         }
 
-        // 1 свисток (високий різкий звук для вибуху)
+        // 1 свисток (Початок ВИБУХУ)
         function playOneWhistle() {
             playBeep(1200, 0.4, "triangle", 0.5);
         }
 
-        // 2 свистки (для повернення в легкий рух)
+        // 2 свистки (Повернення в ЛЕГКИЙ РУХ)
         function playTwoWhistles() {
             playBeep(1200, 0.25, "triangle", 0.5);
-            setTimeout(() => playBeep(1200, 0.25, "triangle", 0.5), 350);
+            setTimeout(() => playBeep(1200, 0.25, "triangle", 0.5), 300);
         }
 
-        // Попереджувальні тихі піки за 3 секунди до зміни фази
+        // Попереджувальні піки перед зміною фази
         function playAlert() { playBeep(600, 0.1, "sine", 0.2); }
 
         let timerInterval = null;
@@ -131,10 +131,12 @@
 
             let currentRound = 1;
             let isRestPhase = false;
-            let isFastSubPhase = true; 
+            
+            // ТЕПЕР СТАРТУЄМО З ЛЕГКОГО РУХУ
+            let isFastSubPhase = false; 
             
             let roundTimeLeft = roundDuration;
-            let subPhaseTimeLeft = fastDuration;
+            let subPhaseTimeLeft = slowDuration; // Перший таймер отримує час легкого руху
 
             const statusCard = document.getElementById('status-card');
             const roundTitle = document.getElementById('round-title');
@@ -142,7 +144,7 @@
             const timerDisplay = document.getElementById('timer-display');
             const totalTimeDisplay = document.getElementById('total-time');
 
-            // Початок першого раунду — ГОНГ
+            // Початок раунду — лунає ГОНГ
             playGong();
 
             timerInterval = setInterval(() => {
@@ -166,35 +168,36 @@
                     roundTimeLeft--;
 
                     if (subPhaseTimeLeft < 0 && roundTimeLeft > 0) {
-                        // Перемикання мікро-фаз всередині раунду
+                        // Чергування мікро-фаз всередині раунду
                         isFastSubPhase = !isFastSubPhase;
                         subPhaseTimeLeft = isFastSubPhase ? fastDuration : slowDuration;
                         
-                        // Звукове сповіщення залежно від фази
+                        // Звук грає ОДРАЗУ при зміні прапорця фази
                         if (isFastSubPhase) {
-                            playOneWhistle(); // 1 свисток на вибух
+                            playOneWhistle();  // 1 свисток -> Почався вибух
                         } else {
-                            playTwoWhistles(); // 2 свистки на легкий рух
+                            playTwoWhistles(); // 2 свистки -> Почався легкий рух
                         }
                     }
 
                     if (roundTimeLeft < 0) {
-                        // Раунд закінчився
+                        // Кінець раунду
                         if (currentRound >= totalRounds) {
                             clearInterval(timerInterval);
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
                             roundTitle.innerText = "🏆 КІНЕЦЬ 🏆";
                             phaseTitle.innerText = "Тренування завершено!";
                             timerDisplay.innerText = "00:00";
-                            playGong(); // Фінальний ГОНГ
+                            playGong(); // Фінальний гонг
                             resetUI();
                         } else {
                             isRestPhase = true;
                             subPhaseTimeLeft = restDuration;
-                            playGong(); // ГОНГ на велику перерву
+                            playGong(); // Гонг на перерву між раундами
                         }
                     }
                 } else {
+                    // Логіка відпочинку між раундами
                     statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-rest";
                     roundTitle.innerText = `ВІДПОЧИНОК`;
                     phaseTitle.innerText = `Підготовка до раунду ${currentRound + 1}`;
@@ -206,12 +209,13 @@
                     subPhaseTimeLeft--;
 
                     if (subPhaseTimeLeft < 0) {
+                        // Початок нового раунду (знову з легкого руху)
                         isRestPhase = false;
                         currentRound++;
                         roundTimeLeft = roundDuration;
-                        isFastSubPhase = true;
-                        subPhaseTimeLeft = fastDuration;
-                        playGong(); // ГОНГ на початок нового раунду
+                        isFastSubPhase = false;
+                        subPhaseTimeLeft = slowDuration;
+                        playGong();
                     }
                 }
             }, 1000);
