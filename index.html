@@ -100,10 +100,68 @@
         }
 
         // 2. Суддівський свисток (Вибух/Рух)
-        function playWhistle() {
-            playSound(2200, 0.4, "triangle", 0.5, 2000); 
-            setTimeout(() => playSound(2300, 0.4, "sine", 0.4, 2100), 20);
-        }
+        // Покращений реалістичний свисток із ефектом кульки (тремоло) та тривалістю 1 сек
+function playWhistle() {
+    try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const dur = 1.0; // Тривалість свистка (1 секунда)
+        
+        // Створюємо два основні джерела звуку для об'єму
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc1.type = "triangle"; // Насичений звук
+        osc2.type = "sine";     // Згладжування
+        
+        // Бойові частоти реферійного свистка (~2000 Гц)
+        osc1.frequency.setValueAtTime(2000, now);
+        osc2.frequency.setValueAtTime(2040, now); // Невелика різниця створює акустичне биття
+        
+        // Створюємо "кульку" (LFO для швидкої вібрації частоти)
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        
+        lfo.frequency.setValueAtTime(22, now); // Швидкість вібрації (22 рази на секунду)
+        lfoGain.gain.setValueAtTime(40, now);  // Глибина вібрації (на скільки Гц стрибає звук)
+        
+        // Зв'язуємо схему: LFO керує частотою обох осциляторів
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc1.frequency);
+        lfoGain.connect(osc2.frequency);
+        
+        // Налаштування гучності та плавного згасання в кінці
+        gainNode.gain.setValueAtTime(0.5, now);
+        gainNode.gain.linearRampToValueAtTime(0.5, now + dur - 0.2); // Тримає гучність майже до кінця
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, now + dur); // Різко згасає
+        
+        // Підключаємо до динаміків
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        // Стартуємо все одночасно
+        lfo.start(now);
+        osc1.start(now);
+        osc2.start(now);
+        
+        // Зупиняємо через 1 секунду
+        lfo.stop(now + dur);
+        osc1.stop(now + dur);
+        osc2.stop(now + dur);
+    } catch (e) { console.log("Whistle error:", e); }
+}
+
+// Оновлені виклики для фаз
+function playOneWhistle() { 
+    playWhistle(); 
+}
+function playTwoWhistles() {
+    playWhistle();
+    // Другий свисток пролунає через 1.2 секунди (коли перший повністю затихне)
+    setTimeout(playWhistle, 1200); 
+}
         function playOneWhistle() { playWhistle(); }
         function playTwoWhistles() {
             playWhistle();
