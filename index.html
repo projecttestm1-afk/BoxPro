@@ -190,51 +190,69 @@
 
             let currentRound = 1;
             let isRestPhase = false;
-            let isFastSubPhase = false; // ПОЧИНАЄМО З РУХУ (false = повільний)
+            let isFastSubPhase = false; 
             
             let roundTimeLeft = roundDuration;
-            let subPhaseTimeLeft = slowDuration; // Перший відрізок — це РУХ
+            let subPhaseTimeLeft = slowDuration; 
 
-            // ДОВГИЙ ГОНГ НА ПОЧАТОК РАУНДУ
+            // Перевіряємо, чи увімкнені взагалі інтервали (якщо хоч один не 0)
+            const hasIntervals = (slowDuration > 0 || fastDuration > 0);
+
+            // Перший гонг раунду
             playGong();
 
-            // Малюємо початковий стан (Зелений - РУХ)
-            statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
+            // Початковий екран сайту
+            if (hasIntervals) {
+                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
+                phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
+                timerDisplay.innerText = formatTime(subPhaseTimeLeft);
+            } else {
+                // Якщо інтервалів немає (0 і 0), показуємо просто синій або зелений раунд і зворотний відлік самого раунду
+                statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
+                phaseTitle.innerText = "🥊 РАУНД ІДЕ 🥊";
+                timerDisplay.innerText = formatTime(roundTimeLeft);
+            }
+            
             roundTitle.innerText = `Раунд ${currentRound} / ${totalRounds}`;
-            phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
-            timerDisplay.innerText = formatTime(subPhaseTimeLeft);
             totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
 
             timerInterval = setInterval(() => {
                 if (!isRestPhase) {
-                    // Зменшуємо час
-                    subPhaseTimeLeft--;
+                    // Зменшуємо час раунду та інтервалу (якщо він є)
+                    if (hasIntervals) subPhaseTimeLeft--;
                     roundTimeLeft--;
 
-                    if (subPhaseTimeLeft >= 0 && roundTimeLeft >= 0) {
-                        timerDisplay.innerText = formatTime(subPhaseTimeLeft);
+                    // Відображення часу
+                    if (roundTimeLeft >= 0) {
+                        if (hasIntervals) {
+                            timerDisplay.innerText = formatTime(subPhaseTimeLeft);
+                            if (subPhaseTimeLeft < 3 && subPhaseTimeLeft > 0) playAlert();
+                        } else {
+                            // Якщо інтервалів немає, головний таймер показує загальний час раунду
+                            timerDisplay.innerText = formatTime(roundTimeLeft);
+                            if (roundTimeLeft < 3 && roundTimeLeft > 0) playAlert(); // пікає наприкінці раунду
+                        }
                         totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
-                        if (subPhaseTimeLeft < 3 && subPhaseTimeLeft > 0) playAlert();
                     }
 
-                    // Перемикання фаз всередині раунду (Рух -> Вибух -> Рух -> ...)
-                    if (subPhaseTimeLeft < 0 && roundTimeLeft > 0) {
+                    // Перемикання інтервалів Рух/Вибух (працює ТІЛЬКИ якщо вони не по 0)
+                    if (hasIntervals && subPhaseTimeLeft < 0 && roundTimeLeft > 0) {
                         isFastSubPhase = !isFastSubPhase;
                         subPhaseTimeLeft = isFastSubPhase ? fastDuration : slowDuration;
 
                         if (isFastSubPhase) {
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-fast";
                             phaseTitle.innerText = "🔥 ВИБУХ (ШВИДКО) 🔥";
-                            playOneWhistle(); // 1 свисток
+                            playOneWhistle(); 
                         } else {
                             statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
                             phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
-                            playTwoWhistles(); // 2 свистки
+                            playTwoWhistles(); 
                         }
                         timerDisplay.innerText = formatTime(subPhaseTimeLeft);
                     }
 
-                    // Перемикання раунду або кінець тренування
+                    // Кінець раунду / Перерва
                     if (roundTimeLeft < 0) {
                         if (currentRound >= totalRounds) {
                             clearInterval(timerInterval);
@@ -243,7 +261,7 @@
                             phaseTitle.innerText = "Тренування завершено!";
                             timerDisplay.innerText = "00:00";
                             totalTimeDisplay.innerText = "Красава!";
-                            playGong(); // Фінальний ДОВГИЙ ГОНГ
+                            playGong(); 
                             resetUI();
                         } else {
                             isRestPhase = true;
@@ -253,11 +271,11 @@
                             phaseTitle.innerText = `Підготовка до раунду ${currentRound + 1}`;
                             timerDisplay.innerText = formatTime(subPhaseTimeLeft);
                             totalTimeDisplay.innerText = "Відновлюйте дихання";
-                            playGong(); // ДОВГИЙ ГОНГ на перерву
+                            playGong(); 
                         }
                     }
                 } else {
-                    // Логіка відпочинку між раундами
+                    // Логіка відпочинку
                     subPhaseTimeLeft--;
                     if (subPhaseTimeLeft >= 0) {
                         timerDisplay.innerText = formatTime(subPhaseTimeLeft);
@@ -268,16 +286,23 @@
                         isRestPhase = false;
                         currentRound++;
                         roundTimeLeft = roundDuration;
-                        isFastSubPhase = false; // Новий раунд знову починається з РУХУ
+                        isFastSubPhase = false; 
                         subPhaseTimeLeft = slowDuration;
 
-                        statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
                         roundTitle.innerText = `Раунд ${currentRound} / ${totalRounds}`;
-                        phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
-                        timerDisplay.innerText = formatTime(subPhaseTimeLeft);
-                        totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
                         
-                        playGong(); // ДОВГИЙ ГОНГ на старт нового раунду
+                        if (hasIntervals) {
+                            statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-slow";
+                            phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
+                            timerDisplay.innerText = formatTime(subPhaseTimeLeft);
+                        } else {
+                            statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
+                            phaseTitle.innerText = "🥊 РАУНД ІДЕ 🥊";
+                            timerDisplay.innerText = formatTime(roundTimeLeft);
+                        }
+                        
+                        totalTimeDisplay.innerText = `Залишок раунду: ${formatTime(roundTimeLeft)}`;
+                        playGong(); 
                     }
                 }
             }, 1000);
