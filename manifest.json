@@ -1,0 +1,16 @@
+{
+  "name": "Box & Run Interval Timer",
+  "short_name": "BoxTimer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background-color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/857/857455.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
