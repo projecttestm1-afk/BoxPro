@@ -225,8 +225,7 @@
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
 
-                        if (state.isBurst) playOneWhistle();
-                        else playTwoWhistles();
+                        playOneWhistle(); // Один свисток і на РУХ, і на ВИБУХ
                     }
                 }
             }
