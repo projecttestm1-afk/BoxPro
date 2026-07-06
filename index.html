@@ -14,11 +14,55 @@
         .phase-run     { background-color: #0ea5e9; } /* Голубий - рух */
         .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
         .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
+
+        /* Повноекранний режим тренування: картка розтягується на весь екран,
+           а цифри стають величезними (масштабуються від ширини вʼюпорта) */
+        body.training-fullscreen .app-card {
+            max-width: 100%;
+            width: 100%;
+            height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: none;
+        }
+        body.training-fullscreen #status-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 0;
+            border-radius: 0;
+        }
+        body.training-fullscreen #timer-display {
+            font-size: clamp(6rem, 32vw, 18rem);
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+        body.training-fullscreen #round-title {
+            font-size: clamp(1.25rem, 5vw, 2rem);
+        }
+        body.training-fullscreen #phase-title {
+            font-size: clamp(1rem, 4vw, 1.5rem);
+        }
+        body.training-fullscreen #total-time {
+            font-size: clamp(0.9rem, 3vw, 1.25rem);
+        }
     </style>
+
+    <!-- ==================== АНАЛІТИКА (GoatCounter) ====================
+         1. Зареєструйся на https://www.goatcounter.com (безкоштовно)
+         2. Створи сайт, тобі дадуть code (наприклад "myboxingtimer")
+         3. Заміни ЗАМІНИ-МЕНЕ на свій code нижче — і все запрацює
+         Дашборд буде на https://ТВІЙ-CODE.goatcounter.com -->
+    <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500">
 
-    <div class="w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center">
+    <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center">
         <!-- Картка статусу -->
         <div id="status-card" class="phase-prepare rounded-2xl p-6 mb-6 transition-colors duration-500 shadow-lg">
             <h2 id="round-title" class="text-2xl font-black tracking-wider uppercase mb-1">Гонг Чекає</h2>
@@ -179,10 +223,29 @@
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
         }
 
+        // ==================== ПОВНОЕКРАННИЙ РЕЖИМ ====================
+        function enterFullscreenMode() {
+            document.body.classList.add('training-fullscreen');
+            const el = document.documentElement;
+            const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (req) {
+                req.call(el).catch(() => {}); // Ігноруємо, якщо браузер відмовив (напр. desktop без жесту)
+            }
+        }
+
+        function exitFullscreenMode() {
+            document.body.classList.remove('training-fullscreen');
+            if (document.fullscreenElement) {
+                (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)
+                    .call(document).catch(() => {});
+            }
+        }
+
         // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================
         async function startTraining() {
             unlockAudio();
             await requestWakeLock();
+            enterFullscreenMode();
 
             // Збираємо налаштування
             config = {
@@ -287,6 +350,7 @@
             clearInterval(timerInterval);
             stopAllSounds(); // Обриваємо звуки минулої фази
             playGong(); // ФІНАЛЬНИЙ ГОНГ
+            exitFullscreenMode();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -299,6 +363,7 @@
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             state.phase = 'STOPPED';
             updateScreen();
+            exitFullscreenMode();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -364,6 +429,14 @@
                 totalTime.innerText = "Налаштуйте та тисніть Старт";
             }
         }
+
+        // Якщо користувач вийшов з fullscreen вручну (свайп/кнопка "назад"),
+        // прибираємо клас, щоб великий шрифт не лишався в звичайному вікні
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('training-fullscreen');
+            }
+        });
 
         // ==================== SERVICE WORKER ====================
         if ('serviceWorker' in navigator) {
