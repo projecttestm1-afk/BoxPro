@@ -159,6 +159,7 @@
         <!-- Кнопки -->
         <div class="flex gap-4">
             <button id="btn-start" onclick="startTraining()" class="flex-1 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all shadow-lg shadow-green-900/30 text-lg uppercase">СТАРТ</button>
+            <button id="btn-pause" onclick="togglePause()" class="flex-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase">ПАУЗА</button>
             <button id="btn-stop" onclick="stopTraining()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-red-400 font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase border border-zinc-700">СТОП</button>
         </div>
     </div>
@@ -257,7 +258,8 @@
             currentRound: 1,
             timeRemaining: 0,
             subPhaseTime: 0,
-            isBurst: false
+            isBurst: false,
+            isPaused: false
         };
 
         function getInt(id, defaultVal = 0) {
@@ -281,14 +283,20 @@
             document.body.classList.add('training-fullscreen');
             const el = document.documentElement;
             const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+
+            const tryLockLandscape = () => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape')
+                        .catch(err => console.log('Orientation lock не спрацював:', err));
+                }
+            };
+
             if (req) {
-                req.call(el).then(() => {
-                    // Намагаємось заблокувати ГОРИЗОНТАЛЬНУ орієнтацію (працює на Android
-                    // Chrome у fullscreen; на iOS Safari цього API немає — там CSS-фолбек нижче)
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(() => {});
-                    }
-                }).catch(() => {});
+                // Пробуємо лок і після успішного fullscreen, і навіть якщо fullscreen відхилено —
+                // на встановлених PWA (standalone) лок іноді працює без fullscreen взагалі
+                req.call(el).then(tryLockLandscape).catch(tryLockLandscape);
+            } else {
+                tryLockLandscape();
             }
         }
 
@@ -320,7 +328,10 @@
             // Оновлюємо UI кнопок
             document.getElementById('settings-box').classList.add('hidden');
             document.getElementById('btn-start').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+            document.getElementById('btn-pause').innerText = "ПАУЗА";
             document.getElementById('btn-stop').classList.remove('hidden');
+            state.isPaused = false;
 
             // Запуск підготовки
             state.phase = 'PREPARE';
@@ -386,6 +397,26 @@
             updateScreen();
         }
 
+        function togglePause() {
+            const pauseBtn = document.getElementById('btn-pause');
+            const phaseTitleEl = document.getElementById('phase-title');
+
+            if (state.isPaused) {
+                // ПРОДОВЖИТИ
+                state.isPaused = false;
+                timerInterval = setInterval(tick, 1000);
+                pauseBtn.innerText = "ПАУЗА";
+                updateScreen(); // повертаємо правильний підпис фази замість "ПАУЗА"
+            } else {
+                // ПАУЗА
+                state.isPaused = true;
+                clearInterval(timerInterval);
+                timerInterval = null;
+                pauseBtn.innerText = "ПРОДОВЖИТИ";
+                phaseTitleEl.innerText = "⏸ ПАУЗА";
+            }
+        }
+
         // ==================== ФАЗОВІ ПЕРЕХОДИ ====================
         function startNextRound() {
             state.phase = 'ROUND';
@@ -414,6 +445,7 @@
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-start').innerText = "ПОЧАТИ ЗНОВУ";
+            document.getElementById('btn-pause').classList.add('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
         }
 
@@ -421,12 +453,14 @@
             clearInterval(timerInterval);
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             state.phase = 'STOPPED';
+            state.isPaused = false;
             updateScreen();
             exitFullscreenMode();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-start').innerText = "СТАРТ";
+            document.getElementById('btn-pause').classList.add('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
         }
 
