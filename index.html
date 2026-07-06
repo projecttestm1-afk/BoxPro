@@ -82,6 +82,27 @@
                 margin-bottom: 0.5rem;
             }
         }
+
+        /* ФОЛБЕК: якщо телефон фізично тримають вертикально (портрет),
+           а screen.orientation.lock не спрацював (Safari/iOS не підтримує
+           цей API взагалі) — примусово розвертаємо вміст на 90°, щоб
+           виглядало як горизонтальний екран без реального повороту телефону */
+        @media (orientation: portrait) {
+            body.training-fullscreen .app-card {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                width: 100vh;
+                width: 100dvh;
+                height: 100vw;
+                height: 100dvw;
+                transform: translate(-50%, -50%) rotate(90deg);
+                transform-origin: center center;
+            }
+            body.training-fullscreen #timer-display {
+                font-size: clamp(3rem, 22vmin, 12rem);
+            }
+        }
     </style>
 
     <!-- ==================== АНАЛІТИКА (GoatCounter) ====================
@@ -262,10 +283,10 @@
             const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
             if (req) {
                 req.call(el).then(() => {
-                    // Намагаємось заблокувати портретну орієнтацію (працює на Android Chrome
-                    // у fullscreen; на iOS Safari API відсутнє — там орієнтацію контролює сам iOS)
+                    // Намагаємось заблокувати ГОРИЗОНТАЛЬНУ орієнтацію (працює на Android
+                    // Chrome у fullscreen; на iOS Safari цього API немає — там CSS-фолбек нижче)
                     if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('portrait').catch(() => {});
+                        screen.orientation.lock('landscape').catch(() => {});
                     }
                 }).catch(() => {});
             }
