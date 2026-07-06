@@ -2,559 +2,624 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Боксерський таймер</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BoxTimer">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Для скидання кешу міняй номер версії тут при кожному апдейті: v=1.0.2 -->
+    <meta name="app-version" content="v=1.0.2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boxing Manual Timer</title>
     <style>
-        body { background-color: #121212; color: #ffffff; font-family: system-ui, sans-serif; }
-        /* Ваші кольори фаз */
-        .phase-prepare { background-color: #1e3a8a; } /* Темно-синій для старту */
-        .phase-normal  { background-color: #16a34a; } /* Зелений - звичайна робота */
-        .phase-run     { background-color: #0ea5e9; } /* Голубий - рух */
-        .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
-        .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
-
-        /* Повноекранний режим тренування: весь body фарбується кольором поточної
-           фази (через CSS-змінну --phase-color), а картка стає прозорою —
-           так колір заливає екран повністю, без "недофарбованого" низу */
-        body.training-fullscreen {
-            background-color: var(--phase-color, #121212);
-            transition: background-color 0.5s;
+        /* Базові стилі та темна атлетична тема */
+        * {
+            box-sizing: border-box;
+            margin: 0;
             padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
         }
-        body.training-fullscreen .app-card {
-            max-width: 100%;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            border-radius: 0;
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            border: none;
-            background-color: transparent !important;
-            box-shadow: none;
-            overflow: hidden;
-        }
-        body.training-fullscreen #status-card {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin-bottom: 0;
-            border-radius: 0;
-            background-color: transparent !important;
-            min-height: 0;
+            min-height: 100vh;
+            overflow: hidden;
         }
-        /* vmin (не vw!) — розмір рахується від МЕНШОЇ сторони екрана,
-           тому цифри не роздуваються при переворотах у горизонтальний режим */
-        body.training-fullscreen #timer-display {
-            font-size: clamp(4rem, 28vmin, 16rem);
-            line-height: 1;
-            margin-bottom: 1rem;
+
+        /* Головний контейнер таймера */
+        .timer-card {
+            background-color: #1e1e1e;
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 750px;
+            border-radius: 24px;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #2d2d2d;
         }
-        body.training-fullscreen #round-title {
-            font-size: clamp(1.1rem, 6vmin, 2rem);
-            flex-shrink: 0;
-        }
-        body.training-fullscreen #phase-title {
-            font-size: clamp(0.9rem, 5vmin, 1.5rem);
-            flex-shrink: 0;
-        }
-        body.training-fullscreen #total-time {
-            font-size: clamp(0.8rem, 4vmin, 1.25rem);
-            flex-shrink: 0;
-        }
-        /* В горизонтальній орієнтації менше вертикального простору —
-           трохи стискаємо відступи, щоб round-title гарантовано влазив */
-        @media (orientation: landscape) {
-            body.training-fullscreen #status-card {
-                padding: 1rem;
-            }
-            body.training-fullscreen #timer-display {
-                font-size: clamp(3rem, 22vmin, 12rem);
-                margin-bottom: 0.5rem;
+
+        @media (max-width: 480px) {
+            .timer-card {
+                border-radius: 0;
+                max-height: 100vh;
             }
         }
 
-        /* ФОЛБЕК: якщо телефон фізично тримають вертикально (портрет),
-           а screen.orientation.lock не спрацював (Safari/iOS не підтримує
-           цей API взагалі) — примусово розвертаємо вміст на 90°, щоб
-           виглядало як горизонтальний екран без реального повороту телефону */
-        @media (orientation: portrait) {
-            body.training-fullscreen .app-card {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                width: 100vh;
-                width: 100dvh;
-                height: 100vw;
-                height: 100dvw;
-                transform: translate(-50%, -50%) rotate(90deg);
-                transform-origin: center center;
-            }
-            body.training-fullscreen #timer-display {
-                font-size: clamp(3rem, 22vmin, 12rem);
-            }
+        /* Кнопка-шестерня */
+        .settings-gear {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #a0a0a0;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .settings-gear:hover {
+            color: #ffffff;
+            transform: rotate(45deg);
+        }
+
+        /* Індикатори стану та часу */
+        .status-indicator {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-top: 40px;
+            text-transform: uppercase;
+            color: #ff4500; /* Колір за замовчуванням - бойовий */
+        }
+
+        .status-indicator.rest {
+            color: #00cc66; /* Зелений для відпочинку */
+        }
+
+        /* Величезні цифри часу */
+        .huge-digits {
+            font-size: 7.5rem;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums; /* Щоб цифри не стрибали при зміні */
+            margin: 20px 0;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .huge-digits:active {
+            transform: scale(0.95);
+        }
+
+        /* Анімація блимання, коли час вийшов */
+        .blink {
+            animation: flash 1s infinite;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .round-counter {
+            font-size: 1.3rem;
+            color: #a0a0a0;
+            font-weight: 500;
+            margin-bottom: 40px;
+        }
+
+        /* Додаткова міні-кнопка Паузи/Старту */
+        .play-pause-btn {
+            background-color: #2d2d2d;
+            border: none;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Розтягнута головна кнопка перемикання */
+        .stretched-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 16px;
+            background-color: #ff4500;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .stretched-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Модальне вікно налаштувань */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.2s;
+        }
+
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .modal-content {
+            background-color: #1e1e1e;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 30px 24px;
+            position: relative;
+            border: 1px solid #333;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #a0a0a0;
+            cursor: pointer;
+        }
+
+        .modal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        /* Перемикач мови */
+        .lang-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: 10px;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            color: #a0a0a0;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .lang-btn.active {
+            background-color: #ff4500;
+            color: #fff;
+            border-color: #ff4500;
+        }
+
+        /* Кастомізація інпутів часу */
+        .settings-group {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-group label {
+            color: #d0d0d0;
+            font-size: 0.95rem;
+        }
+
+        .settings-group input {
+            width: 80px;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: #333;
+            margin: 20px 0;
+        }
+
+        /* Інструкція */
+        .instructions h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: #ff4500;
+        }
+
+        .instructions p {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            line-height: 1.4;
+        }
+
+        /* Футер з авторством */
+        .modal-footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .modal-footer a {
+            color: #a0a0a0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .modal-footer a:hover {
+            text-decoration: underline;
+            color: #ff4500;
         }
     </style>
-    <script data-goatcounter="https://boxing-timer.goatcounter.com/count"
-        асинхронний src="//gc.zgo.at/count.js"></script>
-
-    <!-- ==================== АНАЛІТИКА (GoatCounter) ====================
-         1. Зареєструйся на https://www.goatcounter.com (безкоштовно)
-         2. Створи сайт, тобі дадуть code (наприклад "myboxingtimer")
-         3. Заміни ЗАМІНИ-МЕНЕ на свій code нижче — і все запрацює
-         Дашборд буде на https://ТВІЙ-CODE.goatcounter.com -->
-    <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count"
-            async src="//gc.zgo.at/count.js"></script>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500">
+<body>
 
-    <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center">
-        <!-- Картка статусу -->
-        <div id="status-card" class="phase-prepare rounded-2xl p-6 mb-6 transition-colors duration-500 shadow-lg">
-            <h2 id="round-title" class="text-2xl font-black tracking-wider uppercase mb-1">Гонг Чекає</h2>
-            <p id="phase-title" class="text-xl font-bold opacity-90 text-white">Налаштуйте та тисніть Старт</p>
-        </div>
+    <div class="timer-card">
+        <!-- Кнопка налаштувань у кутку -->
+        <button id="settings-btn" class="settings-gear">⚙️</button>
 
-        <!-- Головний таймер -->
-        <div class="mb-6 relative">
-            <div id="timer-display" class="text-7xl font-black font-mono tracking-tight text-white mb-2">00:00</div>
-            <p id="total-time" class="text-sm text-zinc-400 font-bold">Час раунду: 00:00</p>
-        </div>
+        <!-- Етап: Раунд / Відпочинок -->
+        <div id="status-display" class="status-indicator">Раунд</div>
 
-        <!-- Налаштування -->
-        <div id="settings-box" class="grid grid-cols-2 gap-4 text-left mb-6">
-            <div>
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
-                <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
-            </div>
-            <div>
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
-                <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
-            </div>
-            <div>
-                <label class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
-                <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
-            </div>
-            <div>
-                <label class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
-                <input type="number" id="input-fast-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-red-500 transition-colors">
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
-                <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
-                <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
-            </div>
-        </div>
+        <!-- Головний таймер (можна тапнути для паузи) -->
+        <div id="time-display" class="huge-digits">03:00</div>
 
-        <!-- Кнопки -->
-        <div class="flex gap-4">
-            <button id="btn-start" onclick="startTraining()" class="flex-1 bg-green-600 hover:bg-green-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all shadow-lg shadow-green-900/30 text-lg uppercase">СТАРТ</button>
-            <button id="btn-pause" onclick="togglePause()" class="flex-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase">ПАУЗА</button>
-            <button id="btn-stop" onclick="stopTraining()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-red-400 font-black py-4 rounded-2xl tracking-wide transition-all hidden text-lg uppercase border border-zinc-700">СТОП</button>
+        <!-- Номер раунду -->
+        <div id="round-display" class="round-counter">Раунд 1/12</div>
+
+        <!-- Кнопка Паузи/Старту -->
+        <button id="play-pause-btn" class="play-pause-btn">СТАРТ</button>
+
+        <!-- Велика розтягнута кнопка ручного перемикання -->
+        <button id="next-step-btn" class="stretched-btn">НАСТУПНИЙ ЕТАП</button>
+    </div>
+
+    <!-- Модалка налаштувань -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-btn">×</button>
+            
+            <h2 id="modal-title">Налаштування</h2>
+            
+            <!-- Вибір мови -->
+            <div class="lang-switch">
+                <button id="lang-ua" class="lang-btn active">УКР</button>
+                <button id="lang-en" class="lang-btn">ENG</button>
+            </div>
+
+            <!-- Конфігурація часу -->
+            <div class="settings-group">
+                <label id="label-work" for="input-work">Час раунду (сек):</label>
+                <input type="number" id="input-work" value="180" min="5">
+            </div>
+            <div class="settings-group">
+                <label id="label-rest" for="input-rest">Час відпочинку (сек):</label>
+                <input type="number" id="input-rest" value="60" min="5">
+            </div>
+            <div class="settings-group">
+                <label id="label-rounds" for="input-rounds">Кількість раундів:</label>
+                <input type="number" id="input-rounds" value="12" min="1">
+            </div>
+
+            <hr>
+
+            <!-- Блок інструкції -->
+            <div class="instructions">
+                <h3 id="instruction-title">Інструкція</h3>
+                <p id="instruction-text">Таймер рахує час поточного етапу. Коли час вийде, він почне блимати. Натисніть велику кнопку «НАСТУПНИЙ ЕТАП» внизу, щоб вручну перейти до наступного раунду чи відпочинку.</p>
+            </div>
+
+            <!-- Авторство у підвалі модалки -->
+            <div class="modal-footer">
+                <span id="label-author">Автор:</span> <a href="https://github.com/твій-профіль" target="_blank">Klikoduev</a>
+            </div>
         </div>
     </div>
 
     <script>
-        // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================
-        // Кладіть свої mp3-файли у папку /sounds поруч з index.html
-        // Точні назви файлів, які очікує цей код:
-        const SOUND_FILES = {
-            gong:     'sounds/gong.mp3',      // Удар гонгу — старт раунду / відпочинку / фініш
-            whistle:  'sounds/whistle.mp3',   // Суддівський свисток — перемикання рух/вибух
-            warning:  'sounds/warning.mp3',   // Коротка відсічка за 10 сек до кінця раунду
-            tick:     'sounds/tick.mp3'       // Короткий "пік" для відліку підготовки/відпочинку
+        // 1. Локалізація (Двомовність)
+        const translations = {
+            ua: {
+                work: "РАУНД",
+                rest: "ВІДПОЧИНОК",
+                round: "Раунд",
+                nextBtn: "НАСТУПНИЙ ЕТАП",
+                settingsTitle: "Налаштування",
+                instructionsTitle: "Інструкція",
+                instruction: "Таймер рахує час поточного етапу. Коли час вийде, він почне блимати. Натисніть велику кнопку «НАСТУПНИЙ ЕТАП» внизу, щоб вручну перейти до наступного раунду чи відпочинку.",
+                workLabel: "Час раунду (сек):",
+                restLabel: "Час відпочинку (сек):",
+                roundsLabel: "Кількість раундів:",
+                authorLabel: "Автор:",
+                start: "СТАРТ",
+                pause: "ПАУЗА",
+                finished: "ТРЕНУВАННЯ ЗАВЕРШЕНО!"
+            },
+            en: {
+                work: "ROUND",
+                rest: "REST",
+                round: "Round",
+                nextBtn: "NEXT STEP",
+                settingsTitle: "Settings",
+                instructionsTitle: "Instructions",
+                instruction: "The timer counts down the current phase. When time runs out, it will blink. Press the large 'NEXT STEP' button at the bottom to manually transition to the next round or rest period.",
+                workLabel: "Round time (sec):",
+                restLabel: "Rest time (sec):",
+                roundsLabel: "Total rounds:",
+                authorLabel: "Author:",
+                start: "START",
+                pause: "PAUSE",
+                finished: "WORKOUT FINISHED!"
+            }
         };
 
-        // Кеш готових Audio-об'єктів (щоб не створювати їх щоразу заново)
-        const audioCache = {};
-        let audioUnlocked = false;
+        // 2. Стани таймера за замовчуванням
+        let workTime = 180; 
+        let restTime = 60;
+        let totalRounds = 12;
+        
+        let currentRound = 1;
+        let isWorkPhase = true; 
+        let timeLeft = workTime;
+        let timerId = null;
+        let isRunning = false;
+        let currentLang = 'ua';
 
-        function preloadSounds() {
-            Object.entries(SOUND_FILES).forEach(([key, src]) => {
-                const audio = new Audio(src);
-                audio.preload = 'auto';
-                audioCache[key] = audio;
-            });
+        // 3. Елементи інтерфейсу
+        const statusDisplay = document.getElementById('status-display');
+        const timeDisplay = document.getElementById('time-display');
+        const roundDisplay = document.getElementById('round-display');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const nextStepBtn = document.getElementById('next-step-btn');
+        
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        
+        const langUaBtn = document.getElementById('lang-ua');
+        const langEnBtn = document.getElementById('lang-en');
+        const inputWork = document.getElementById('input-work');
+        const inputRest = document.getElementById('input-rest');
+        const inputRounds = document.getElementById('input-rounds');
+
+        // Текстові мітки модалки
+        const modalTitle = document.getElementById('modal-title');
+        const labelWork = document.getElementById('label-work');
+        const labelRest = document.getElementById('label-rest');
+        const labelRounds = document.getElementById('label-rounds');
+        const instructionTitle = document.getElementById('instruction-title');
+        const instructionText = document.getElementById('instruction-text');
+        const labelAuthor = document.getElementById('label-author');
+
+        // 4. Синтезатор звуку (Електронний гонг)
+        function playSound(isEndBell = false) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                if (isEndBell) {
+                    // Симуляція потрійного жорсткого удару гонгу
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Ре
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                    osc.stop(ctx.currentTime + 0.6);
+                } else {
+                    // Звичайний писк старту/кліку
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.stop(ctx.currentTime + 0.15);
+                }
+            } catch (e) {
+                console.log("Аудіо контекст заблоковано браузером. Потрібен перший клік.");
+            }
         }
 
-        // iOS/Android блокують автоплей звуку, поки не буде явного жесту користувача.
-        // Тому "розблоковуємо" аудіо прямо в обробнику кліку на кнопку СТАРТ.
-        function unlockAudio() {
-            if (audioUnlocked) return;
-            Object.values(audioCache).forEach(audio => {
-                audio.volume = 0;
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    audio.volume = 1;
-                }).catch(() => {});
-            });
-            audioUnlocked = true;
+        // 5. Форматування часу (00:00)
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
         }
 
-        // Відстежуємо всі зараз активні (ще не дограні) звуки, щоб можна було
-        // примусово обірвати їх у момент зміни фази (наприклад, тік не мав
-        // "наповзати" на гонг наступного раунду)
-        let activeAudios = [];
-
-        function playSound(name, volume = 1) {
-            const src = SOUND_FILES[name];
-            if (!src) {
-                console.warn(`Немає шляху для звуку "${name}"`);
+        // Оновлення основного екрана
+        function updateUI() {
+            timeDisplay.textContent = formatTime(timeLeft);
+            
+            if (currentRound > totalRounds) {
+                statusDisplay.textContent = translations[currentLang].finished;
+                roundDisplay.textContent = "";
+                timeDisplay.textContent = "00:00";
+                pauseTimer();
                 return;
             }
-            try {
-                const instance = new Audio(src);
-                instance.volume = volume;
-                activeAudios.push(instance);
-                instance.addEventListener('ended', () => {
-                    activeAudios = activeAudios.filter(a => a !== instance);
-                });
-                instance.play().catch(e => console.log(`Audio play error [${name}]:`, e));
-            } catch (e) {
-                console.log('Audio error:', e);
-            }
-        }
 
-        // Миттєво обриває всі звуки, що ще програються (використовується
-        // перед гонгом, щоб попередній тік не долунав у нову фазу)
-        function stopAllSounds() {
-            activeAudios.forEach(a => {
-                try { a.pause(); a.currentTime = 0; } catch (e) {}
-            });
-            activeAudios = [];
-        }
-
-        function playGong()        { playSound('gong'); }
-        function playOneWhistle()  { playSound('whistle'); }
-        function playTwoWhistles() {
-            playSound('whistle');
-            setTimeout(() => playSound('whistle'), 800);
-        }
-        function play10SecWarning() { playSound('warning'); }
-        function playTick()         { playSound('tick', 0.6); }
-
-        // Запускаємо завантаження файлів одразу при відкритті сторінки
-        preloadSounds();
-
-        // ==================== ЛОГІКА ТАЙМЕРА ====================
-        let timerInterval = null;
-        let wakeLock = null;
-
-        // Стан системи
-        let config = {};
-        let state = {
-            phase: 'STOPPED', // PREPARE, ROUND, REST, FINISHED
-            currentRound: 1,
-            timeRemaining: 0,
-            subPhaseTime: 0,
-            isBurst: false,
-            isPaused: false
-        };
-
-        function getInt(id, defaultVal = 0) {
-            const val = parseInt(document.getElementById(id).value);
-            return isNaN(val) || val < 0 ? defaultVal : val;
-        }
-
-        function formatTime(s) {
-            if (s < 0) s = 0;
-            const m = Math.floor(s / 60).toString().padStart(2, '0');
-            const sec = (s % 60).toString().padStart(2, '0');
-            return `${m}:${sec}`;
-        }
-
-        async function requestWakeLock() {
-            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
-        }
-
-        // ==================== ПОВНОЕКРАННИЙ РЕЖИМ ====================
-        function enterFullscreenMode() {
-            document.body.classList.add('training-fullscreen');
-            const el = document.documentElement;
-            const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-
-            const tryLockLandscape = () => {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape')
-                        .catch(err => console.log('Orientation lock не спрацював:', err));
-                }
-            };
-
-            if (req) {
-                // Пробуємо лок і після успішного fullscreen, і навіть якщо fullscreen відхилено —
-                // на встановлених PWA (standalone) лок іноді працює без fullscreen взагалі
-                req.call(el).then(tryLockLandscape).catch(tryLockLandscape);
+            if (isWorkPhase) {
+                statusDisplay.textContent = translations[currentLang].work;
+                statusDisplay.classList.remove('rest');
             } else {
-                tryLockLandscape();
+                statusDisplay.textContent = translations[currentLang].rest;
+                statusDisplay.classList.add('rest');
+            }
+
+            roundDisplay.textContent = `${translations[currentLang].round} ${currentRound}/${totalRounds}`;
+            
+            // Якщо час вийшов — вмикаємо блимання
+            if (timeLeft === 0) {
+                timeDisplay.classList.add('blink');
+            } else {
+                timeDisplay.classList.remove('blink');
             }
         }
 
-        function exitFullscreenMode() {
-            document.body.classList.remove('training-fullscreen');
-            if (document.fullscreenElement) {
-                (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)
-                    .call(document).catch(() => {});
-            }
-        }
-
-        // ==================== ГОЛОВНИЙ КОНТРОЛЕР ====================
-        async function startTraining() {
-            enterFullscreenMode(); // ОБОВ'ЯЗКОВО першим і синхронно — інакше браузер відхилить запит
-            unlockAudio();
-            await requestWakeLock();
-
-            // Збираємо налаштування
-            config = {
-                rounds: getInt('input-rounds', 3),
-                roundDur: getInt('input-round-time', 180),
-                runDur: getInt('input-slow-time', 0),
-                burstDur: getInt('input-fast-time', 0),
-                prepareDur: getInt('input-prepare-time', 5),
-                restDur: getInt('input-rest-time', 60)
-            };
-            config.isNormalMode = (config.runDur === 0 && config.burstDur === 0);
-
-            // Оновлюємо UI кнопок
-            document.getElementById('settings-box').classList.add('hidden');
-            document.getElementById('btn-start').classList.add('hidden');
-            document.getElementById('btn-pause').classList.remove('hidden');
-            document.getElementById('btn-pause').innerText = "ПАУЗА";
-            document.getElementById('btn-stop').classList.remove('hidden');
-            state.isPaused = false;
-
-            // Запуск підготовки
-            state.phase = 'PREPARE';
-            state.currentRound = 1;
-            state.timeRemaining = config.prepareDur; // Тривалість підготовки з налаштувань
-
-            updateScreen();
-
-            // Головний цикл таймера (кожної секунди)
-            timerInterval = setInterval(tick, 1000);
-        }
-
+        // 6. Логіка роботи таймера (Плідна щосекундна робота)
         function tick() {
-            // Зменшуємо головний час
-            state.timeRemaining--;
-
-            if (state.phase === 'PREPARE') {
-                if (state.timeRemaining > 0) {
-                    playTick();
-                } else {
-                    startNextRound();
+            if (timeLeft > 0) {
+                timeLeft--;
+                if (timeLeft === 0) {
+                    playSound(true); // Гучний сигнал завершення етапу
                 }
+                updateUI();
             }
-            else if (state.phase === 'ROUND') {
-                // Якщо є інтервали, зменшуємо час інтервалу
-                if (!config.isNormalMode) {
-                    state.subPhaseTime--;
-                }
-
-                // 10 Секунд до кінця раунду
-                if (state.timeRemaining === 10) {
-                    play10SecWarning();
-                }
-
-                if (state.timeRemaining <= 0) {
-                    // Раунд закінчився
-                    if (state.currentRound >= config.rounds) {
-                        finishTraining();
-                    } else {
-                        startRest();
-                    }
-                } else {
-                    // Перемикання інтервалів всередині раунду
-                    if (!config.isNormalMode && state.subPhaseTime <= 0) {
-                        state.isBurst = !state.isBurst;
-                        state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-
-                        playOneWhistle(); // Один свисток і на РУХ, і на ВИБУХ
-                    }
-                }
-            }
-            else if (state.phase === 'REST') {
-                if (state.timeRemaining <= 5 && state.timeRemaining > 0) {
-                    playTick();
-                }
-
-                if (state.timeRemaining <= 0) {
-                    state.currentRound++;
-                    startNextRound();
-                }
-            }
-
-            updateScreen();
         }
 
-        function togglePause() {
-            const pauseBtn = document.getElementById('btn-pause');
-            const phaseTitleEl = document.getElementById('phase-title');
+        function startTimer() {
+            if (!isRunning && currentRound <= totalRounds) {
+                isRunning = true;
+                timerId = setInterval(tick, 1000);
+                playPauseBtn.textContent = translations[currentLang].pause;
+                playSound();
+            }
+        }
 
-            if (state.isPaused) {
-                // ПРОДОВЖИТИ
-                state.isPaused = false;
-                timerInterval = setInterval(tick, 1000);
-                pauseBtn.innerText = "ПАУЗА";
-                updateScreen(); // повертаємо правильний підпис фази замість "ПАУЗА"
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerId);
+            playPauseBtn.textContent = translations[currentLang].start;
+        }
+
+        function toggleTimer() {
+            if (isRunning) pauseTimer();
+            else startTimer();
+        }
+
+        // Керування ручним перемиканням етапів (Велика розтягнута кнопка)
+        function handleNextStep() {
+            playSound();
+            if (isWorkPhase) {
+                // Переходимо на відпочинок
+                isWorkPhase = false;
+                timeLeft = restTime;
             } else {
-                // ПАУЗА
-                state.isPaused = true;
-                clearInterval(timerInterval);
-                timerInterval = null;
-                pauseBtn.innerText = "ПРОДОВЖИТИ";
-                phaseTitleEl.innerText = "⏸ ПАУЗА";
+                // Переходимо на новий раунд
+                isWorkPhase = true;
+                currentRound++;
+                timeLeft = workTime;
+            }
+            updateUI();
+            // Якщо таймер працював, продовжуємо зворотний відлік автоматично на новому етапі
+            if (isRunning && currentRound <= totalRounds) {
+                clearInterval(timerId);
+                timerId = setInterval(tick, 1000);
             }
         }
 
-        // ==================== ФАЗОВІ ПЕРЕХОДИ ====================
-        function startNextRound() {
-            state.phase = 'ROUND';
-            state.timeRemaining = config.roundDur;
-            state.subPhaseTime = config.runDur;
-            state.isBurst = false;
-            stopAllSounds(); // Обриваємо тік, щоб не наповзав на гонг
-            playGong(); // УДАР ГОНГУ НА ПОЧАТОК РАУНДУ
+        // 7. Робота з налаштуваннями
+        function loadSettings() {
+            workTime = parseInt(inputWork.value) || 180;
+            restTime = parseInt(inputRest.value) || 60;
+            totalRounds = parseInt(inputRounds.value) || 12;
+            
+            // Скидаємо таймер на початок з новими параметрами
+            currentRound = 1;
+            isWorkPhase = true;
+            timeLeft = workTime;
+            updateUI();
         }
 
-        function startRest() {
-            state.phase = 'REST';
-            state.timeRemaining = config.restDur;
-            stopAllSounds(); // Обриваємо звуки минулої фази
-            playGong(); // УДАР ГОНГУ НА ВІДПОЧИНОК
+        // Перемикач мов
+        function switchLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('boxingTimerLang', lang);
+
+            if (lang === 'ua') {
+                langUaBtn.classList.add('active');
+                langEnBtn.classList.remove('active');
+            } else {
+                langEnBtn.classList.add('active');
+                langUaBtn.classList.remove('active');
+            }
+
+            // Переклад модалки
+            modalTitle.textContent = translations[lang].settingsTitle;
+            labelWork.textContent = translations[lang].workLabel;
+            labelRest.textContent = translations[lang].restLabel;
+            labelRounds.textContent = translations[lang].roundsLabel;
+            instructionTitle.textContent = translations[lang].instructionsTitle;
+            instructionText.textContent = translations[lang].instruction;
+            labelAuthor.textContent = translations[lang].authorLabel;
+            nextStepBtn.textContent = translations[lang].nextBtn;
+            
+            if (isRunning) {
+                playPauseBtn.textContent = translations[lang].pause;
+            } else {
+                playPauseBtn.textContent = translations[lang].start;
+            }
+
+            updateUI();
         }
 
-        function finishTraining() {
-            state.phase = 'FINISHED';
-            state.timeRemaining = 0;
-            clearInterval(timerInterval);
-            stopAllSounds(); // Обриваємо звуки минулої фази
-            playGong(); // ФІНАЛЬНИЙ ГОНГ
-            exitFullscreenMode();
+        // 8. Події (EventListeners)
+        playPauseBtn.addEventListener('click', toggleTimer);
+        timeDisplay.addEventListener('click', toggleTimer); // Тап по цифрах теж ставить паузу
+        nextStepBtn.addEventListener('click', handleNextStep);
 
-            document.getElementById('settings-box').classList.remove('hidden');
-            document.getElementById('btn-start').classList.remove('hidden');
-            document.getElementById('btn-start').innerText = "ПОЧАТИ ЗНОВУ";
-            document.getElementById('btn-pause').classList.add('hidden');
-            document.getElementById('btn-stop').classList.add('hidden');
-        }
-
-        function stopTraining() {
-            clearInterval(timerInterval);
-            if (wakeLock) { wakeLock.release(); wakeLock = null; }
-            state.phase = 'STOPPED';
-            state.isPaused = false;
-            updateScreen();
-            exitFullscreenMode();
-
-            document.getElementById('settings-box').classList.remove('hidden');
-            document.getElementById('btn-start').classList.remove('hidden');
-            document.getElementById('btn-start').innerText = "СТАРТ";
-            document.getElementById('btn-pause').classList.add('hidden');
-            document.getElementById('btn-stop').classList.add('hidden');
-        }
-
-        // ==================== ВІДОБРАЖЕННЯ НА ЕКРАНІ ====================
-        // Кольори фаз (мають збігатись зі значеннями в CSS-класах .phase-*)
-        const PHASE_COLORS = {
-            'phase-prepare': '#1e3a8a',
-            'phase-normal':  '#16a34a',
-            'phase-run':     '#0ea5e9',
-            'phase-burst':   '#dc2626',
-            'phase-rest':    '#4b5563'
-        };
-
-        // Встановлює клас фази на картці ТА синхронізує колір фону всього
-        // екрана (через CSS-змінну), щоб у повноекранному режимі заливка
-        // була суцільною, а не тільки у верхній картці
-        function setStatusPhase(phaseClass) {
-            const statusCard = document.getElementById('status-card');
-            statusCard.className = `rounded-2xl p-6 mb-6 transition-colors duration-500 ${phaseClass}`;
-            document.body.style.setProperty('--phase-color', PHASE_COLORS[phaseClass] || '#121212');
-        }
-
-        function updateScreen() {
-            const statusCard = document.getElementById('status-card');
-            const roundTitle = document.getElementById('round-title');
-            const phaseTitle = document.getElementById('phase-title');
-            const timerDisplay = document.getElementById('timer-display');
-            const totalTime = document.getElementById('total-time');
-
-            if (state.phase === 'PREPARE') {
-                setStatusPhase('phase-prepare');
-                roundTitle.innerText = "ПІДГОТОВКА";
-                phaseTitle.innerText = config.isNormalMode ? "Готуємося до БОЮ" : "Готуємося до РУХУ";
-                timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : "ГО!";
-                totalTime.innerText = "Концентрація";
-            }
-            else if (state.phase === 'ROUND') {
-                roundTitle.innerText = `Раунд ${state.currentRound} / ${config.rounds}`;
-                totalTime.innerText = `Час раунду: ${formatTime(state.timeRemaining)}`;
-
-                if (config.isNormalMode) {
-                    // Зелений - класичний бокс
-                    setStatusPhase('phase-normal');
-                    phaseTitle.innerText = "🥊 БІЙ 🥊";
-                    timerDisplay.innerText = formatTime(state.timeRemaining);
-                } else {
-                    // Інтервали: Голубий або Червоний
-                    if (state.isBurst) {
-                        setStatusPhase('phase-burst');
-                        phaseTitle.innerText = "⚡ ВИБУХ (ШВИДКО) ⚡";
-                    } else {
-                        setStatusPhase('phase-run');
-                        phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
-                    }
-                    timerDisplay.innerText = formatTime(state.subPhaseTime);
-                }
-            }
-            else if (state.phase === 'REST') {
-                setStatusPhase('phase-rest');
-                roundTitle.innerText = "ВІДПОЧИНОК";
-                phaseTitle.innerText = `Готуйтесь до раунду ${state.currentRound + 1}`;
-                timerDisplay.innerText = state.timeRemaining <= 5 ? state.timeRemaining : formatTime(state.timeRemaining);
-                totalTime.innerText = "Відновлюйте дихання";
-            }
-            else if (state.phase === 'FINISHED') {
-                setStatusPhase('phase-prepare');
-                roundTitle.innerText = "🏆 КІНЕЦЬ 🏆";
-                phaseTitle.innerText = "Тренування завершено!";
-                timerDisplay.innerText = "00:00";
-                totalTime.innerText = "Чудова робота!";
-            }
-            else if (state.phase === 'STOPPED') {
-                setStatusPhase('phase-prepare');
-                roundTitle.innerText = "ЗУПИНЕНО";
-                phaseTitle.innerText = "Тренування перервано";
-                timerDisplay.innerText = "00:00";
-                totalTime.innerText = "Налаштуйте та тисніть Старт";
-            }
-        }
-
-        // Якщо користувач вийшов з fullscreen вручну (свайп/кнопка "назад"),
-        // прибираємо клас, щоб великий шрифт не лишався в звичайному вікні
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                document.body.classList.remove('training-fullscreen');
-            }
+        // Вікно налаштувань
+        settingsBtn.addEventListener('click', () => {
+            pauseTimer();
+            settingsModal.classList.remove('hidden');
         });
 
-        // ==================== SERVICE WORKER ====================
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
-        }
+        const closeModal = () => {
+            loadSettings(); // При закритті автоматично зберігаємо і застосовуємо цифри
+            settingsModal.classList.add('hidden');
+        };
+
+        closeModalBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
+
+        // Перемикачі мови
+        langUaBtn.addEventListener('click', () => switchLanguage('ua'));
+        langEnBtn.addEventListener('click', () => switchLanguage('en'));
+
+        // Ініціалізація при старті сторінки
+        const savedLang = localStorage.getItem('boxingTimerLang') || 'ua';
+        switchLanguage(savedLang);
+        loadSettings();
     </script>
 </body>
 </html>
