@@ -104,8 +104,11 @@
             audioUnlocked = true;
         }
 
-        // Відтворення звуку: створюємо новий Audio() з тим самим шляхом при кожному виклику.
-        // Це надійніше за cloneNode(), особливо на мобільних браузерах.
+        // Відстежуємо всі зараз активні (ще не дограні) звуки, щоб можна було
+        // примусово обірвати їх у момент зміни фази (наприклад, тік не мав
+        // "наповзати" на гонг наступного раунду)
+        let activeAudios = [];
+
         function playSound(name, volume = 1) {
             const src = SOUND_FILES[name];
             if (!src) {
@@ -115,10 +118,23 @@
             try {
                 const instance = new Audio(src);
                 instance.volume = volume;
+                activeAudios.push(instance);
+                instance.addEventListener('ended', () => {
+                    activeAudios = activeAudios.filter(a => a !== instance);
+                });
                 instance.play().catch(e => console.log(`Audio play error [${name}]:`, e));
             } catch (e) {
                 console.log('Audio error:', e);
             }
+        }
+
+        // Миттєво обриває всі звуки, що ще програються (використовується
+        // перед гонгом, щоб попередній тік не долунав у нову фазу)
+        function stopAllSounds() {
+            activeAudios.forEach(a => {
+                try { a.pause(); a.currentTime = 0; } catch (e) {}
+            });
+            activeAudios = [];
         }
 
         function playGong()        { playSound('gong'); }
@@ -254,12 +270,14 @@
             state.timeRemaining = config.roundDur;
             state.subPhaseTime = config.runDur;
             state.isBurst = false;
+            stopAllSounds(); // Обриваємо тік, щоб не наповзав на гонг
             playGong(); // УДАР ГОНГУ НА ПОЧАТОК РАУНДУ
         }
 
         function startRest() {
             state.phase = 'REST';
             state.timeRemaining = config.restDur;
+            stopAllSounds(); // Обриваємо звуки минулої фази
             playGong(); // УДАР ГОНГУ НА ВІДПОЧИНОК
         }
 
@@ -267,6 +285,7 @@
             state.phase = 'FINISHED';
             state.timeRemaining = 0;
             clearInterval(timerInterval);
+            stopAllSounds(); // Обриваємо звуки минулої фази
             playGong(); // ФІНАЛЬНИЙ ГОНГ
 
             document.getElementById('settings-box').classList.remove('hidden');
