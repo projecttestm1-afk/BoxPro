@@ -42,7 +42,7 @@
                 <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
             </div>
             <div>
-                <label class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Спокійний рух (сек)</label>
+                <label class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
                 <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
             </div>
             <div>
@@ -52,6 +52,10 @@
             <div class="col-span-2">
                 <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
                 <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
+            </div>
+            <div class="col-span-2">
+                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
+                <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
             </div>
         </div>
 
@@ -170,6 +174,7 @@
                 roundDur: getInt('input-round-time', 180),
                 runDur: getInt('input-slow-time', 0),
                 burstDur: getInt('input-fast-time', 0),
+                prepareDur: getInt('input-prepare-time', 5),
                 restDur: getInt('input-rest-time', 60)
             };
             config.isNormalMode = (config.runDur === 0 && config.burstDur === 0);
@@ -182,7 +187,7 @@
             // Запуск підготовки
             state.phase = 'PREPARE';
             state.currentRound = 1;
-            state.timeRemaining = 5; // 5 секунд підготовки
+            state.timeRemaining = config.prepareDur; // Тривалість підготовки з налаштувань
 
             updateScreen();
 
@@ -230,7 +235,7 @@
                 }
             }
             else if (state.phase === 'REST') {
-                if (state.timeRemaining <= 3 && state.timeRemaining > 0) {
+                if (state.timeRemaining <= 5 && state.timeRemaining > 0) {
                     playTick();
                 }
 
@@ -294,7 +299,7 @@
                 statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-prepare";
                 roundTitle.innerText = "ПІДГОТОВКА";
                 phaseTitle.innerText = config.isNormalMode ? "Готуємося до БОЮ" : "Готуємося до РУХУ";
-                timerDisplay.innerText = formatTime(state.timeRemaining);
+                timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : "ГО!";
                 totalTime.innerText = "Концентрація";
             }
             else if (state.phase === 'ROUND') {
@@ -313,7 +318,7 @@
                         phaseTitle.innerText = "⚡ ВИБУХ (ШВИДКО) ⚡";
                     } else {
                         statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-run";
-                        phaseTitle.innerText = "🏃‍♂️ ВІЛЬНО (ЛЕГКО) 🏃‍♂️";
+                        phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
                     }
                     timerDisplay.innerText = formatTime(state.subPhaseTime);
                 }
@@ -322,7 +327,7 @@
                 statusCard.className = "rounded-2xl p-6 mb-6 transition-colors duration-500 phase-rest";
                 roundTitle.innerText = "ВІДПОЧИНОК";
                 phaseTitle.innerText = `Готуйтесь до раунду ${state.currentRound + 1}`;
-                timerDisplay.innerText = formatTime(state.timeRemaining);
+                timerDisplay.innerText = state.timeRemaining <= 5 ? state.timeRemaining : formatTime(state.timeRemaining);
                 totalTime.innerText = "Відновлюйте дихання";
             }
             else if (state.phase === 'FINISHED') {
