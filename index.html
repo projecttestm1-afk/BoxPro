@@ -55,7 +55,7 @@
         /* vmin (не vw!) — розмір рахується від МЕНШОЇ сторони екрана,
            тому цифри не роздуваються при переворотах у горизонтальний режим */
         body.training-fullscreen #timer-display {
-            font-size: clamp(4rem, 28vmin, 16rem);
+            font-size: clamp(6rem, 34vmin, 22rem);
             line-height: 1;
             margin-bottom: 1rem;
         }
@@ -78,7 +78,7 @@
                 padding: 1rem;
             }
             body.training-fullscreen #timer-display {
-                font-size: clamp(3rem, 22vmin, 12rem);
+                font-size: clamp(6rem, 40vmin, 20rem);
                 margin-bottom: 0.5rem;
             }
         }
@@ -114,7 +114,7 @@
                 transform-origin: center center;
             }
             body.training-fullscreen #timer-display {
-                font-size: clamp(3rem, 22vmin, 12rem);
+                font-size: clamp(6rem, 40vmin, 20rem);
             }
         }
     </style>
@@ -158,27 +158,27 @@
         <!-- Налаштування -->
         <div id="settings-box" class="grid grid-cols-2 gap-4 text-left mb-6">
             <div>
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
+                <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
                 <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
             </div>
             <div>
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
+                <label id="label-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
                 <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
             </div>
             <div>
-                <label class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
+                <label id="label-move" class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
                 <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
             </div>
             <div>
-                <label class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
+                <label id="label-burst" class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
                 <input type="number" id="input-fast-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-red-500 transition-colors">
             </div>
             <div class="col-span-2">
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
+                <label id="label-rest" class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
                 <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
             </div>
             <div class="col-span-2">
-                <label class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
+                <label id="label-prepare" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
                 <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
             </div>
         </div>
@@ -249,7 +249,46 @@
                     "Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.",
                     "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань."
                 ],
-                footer: "Box & Run Interval Timer"
+                footer: "Box & Run Interval Timer",
+                settingsLabels: {
+                    rounds: "Раундів",
+                    roundTime: "Раунд (сек)",
+                    move: "🏃‍♂️ Рух (сек)",
+                    burst: "⚡ Вибух (сек)",
+                    rest: "Відпочинок (сек)",
+                    prepare: "Підготовка перед стартом (сек)"
+                },
+                buttons: {
+                    start: "СТАРТ",
+                    pause: "ПАУЗА",
+                    resume: "ПРОДОВЖИТИ",
+                    stop: "СТОП",
+                    startOver: "ПОЧАТИ ЗНОВУ"
+                },
+                status: {
+                    initialTitle: "Гонг Чекає",
+                    initialSubtitle: "Налаштуйте та тисніть Старт",
+                    prepareTitle: "ПІДГОТОВКА",
+                    prepareSubNormal: "Готуємося до БОЮ",
+                    prepareSubInterval: "Готуємося до РУХУ",
+                    concentration: "Концентрація",
+                    go: "ГО!",
+                    roundTitle: (cur, total) => `Раунд ${cur} / ${total}`,
+                    normalPhase: "🥊 БІЙ 🥊",
+                    burstPhase: "⚡ ВИБУХ (ШВИДКО) ⚡",
+                    movePhase: "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️",
+                    roundEndsIn: (time) => `Раунд закінчиться через: ${time}`,
+                    restTitle: "ВІДПОЧИНОК",
+                    restSubtitle: (next) => `Готуйтесь до раунду ${next}`,
+                    breathe: "Відновлюйте дихання",
+                    finishedTitle: "🏆 КІНЕЦЬ 🏆",
+                    finishedSubtitle: "Тренування завершено!",
+                    greatJob: "Чудова робота!",
+                    stoppedTitle: "ЗУПИНЕНО",
+                    stoppedSubtitle: "Тренування перервано",
+                    setupPrompt: "Налаштуйте та тисніть Старт",
+                    pausedLabel: "⏸ ПАУЗА"
+                }
             },
             en: {
                 modalTitle: "Settings",
@@ -263,17 +302,66 @@
                     "The ⤢ button in the top-left corner stretches the numbers to full screen.",
                     "To actually rotate your phone sideways — turn off rotation lock in your quick settings."
                 ],
-                footer: "Box & Run Interval Timer"
+                footer: "Box & Run Interval Timer",
+                settingsLabels: {
+                    rounds: "Rounds",
+                    roundTime: "Round (sec)",
+                    move: "🏃‍♂️ Move (sec)",
+                    burst: "⚡ Burst (sec)",
+                    rest: "Rest (sec)",
+                    prepare: "Prep before start (sec)"
+                },
+                buttons: {
+                    start: "START",
+                    pause: "PAUSE",
+                    resume: "RESUME",
+                    stop: "STOP",
+                    startOver: "START OVER"
+                },
+                status: {
+                    initialTitle: "Gong Awaits",
+                    initialSubtitle: "Set up and tap Start",
+                    prepareTitle: "GET READY",
+                    prepareSubNormal: "Getting ready to FIGHT",
+                    prepareSubInterval: "Getting ready to MOVE",
+                    concentration: "Focus up",
+                    go: "GO!",
+                    roundTitle: (cur, total) => `Round ${cur} / ${total}`,
+                    normalPhase: "🥊 FIGHT 🥊",
+                    burstPhase: "⚡ BURST (FAST) ⚡",
+                    movePhase: "🏃‍♂️ MOVE (EASY) 🏃‍♂️",
+                    roundEndsIn: (time) => `Round ends in: ${time}`,
+                    restTitle: "REST",
+                    restSubtitle: (next) => `Get ready for round ${next}`,
+                    breathe: "Catch your breath",
+                    finishedTitle: "🏆 FINISHED 🏆",
+                    finishedSubtitle: "Workout complete!",
+                    greatJob: "Great work!",
+                    stoppedTitle: "STOPPED",
+                    stoppedSubtitle: "Workout interrupted",
+                    setupPrompt: "Set up and tap Start",
+                    pausedLabel: "⏸ PAUSED"
+                }
             }
         };
 
         let currentLang = localStorage.getItem('boxtimer-lang') || 'uk';
+        let hasStartedOnce = false;
+
+        function refreshButtonLabels() {
+            const T = TRANSLATIONS[currentLang];
+            document.getElementById('btn-start').innerText = (state.phase === 'FINISHED') ? T.buttons.startOver : T.buttons.start;
+            document.getElementById('btn-pause').innerText = state.isPaused ? T.buttons.resume : T.buttons.pause;
+            document.getElementById('btn-stop').innerText = T.buttons.stop;
+        }
 
         function setLanguage(lang) {
             currentLang = lang;
             try { localStorage.setItem('boxtimer-lang', lang); } catch (e) {}
 
             const t = TRANSLATIONS[lang];
+
+            // Модалка
             document.getElementById('modal-title').innerText = t.modalTitle;
             document.getElementById('modal-lang-label').innerText = t.langLabel;
             document.getElementById('modal-instructions-label').innerText = t.instructionsLabel;
@@ -281,6 +369,18 @@
                 t.instructions.map(line => `<li>${line}</li>`).join('');
             document.getElementById('modal-footer-text').innerText = t.footer;
             document.documentElement.lang = lang;
+
+            // Підписи полів налаштувань
+            document.getElementById('label-rounds').innerText = t.settingsLabels.rounds;
+            document.getElementById('label-round-time').innerText = t.settingsLabels.roundTime;
+            document.getElementById('label-move').innerText = t.settingsLabels.move;
+            document.getElementById('label-burst').innerText = t.settingsLabels.burst;
+            document.getElementById('label-rest').innerText = t.settingsLabels.rest;
+            document.getElementById('label-prepare').innerText = t.settingsLabels.prepare;
+
+            // Кнопки і поточний екран статусу (фаза/раунд/таймер)
+            refreshButtonLabels();
+            updateScreen();
 
             // Підсвічуємо активну кнопку мови
             const ukBtn = document.getElementById('btn-lang-uk');
@@ -294,7 +394,7 @@
             }
         }
 
-        setLanguage(currentLang); // Застосовуємо збережену мову одразу при завантаженні
+        // Мову застосуємо в кінці скрипта, коли вже оголошені state/updateScreen
 
         // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================
         // Кладіть свої mp3-файли у папку /sounds поруч з index.html
@@ -502,12 +602,13 @@
             config.isNormalMode = (config.runDur === 0 && config.burstDur === 0);
 
             // Оновлюємо UI кнопок
+            hasStartedOnce = true;
             document.getElementById('settings-box').classList.add('hidden');
             document.getElementById('btn-start').classList.add('hidden');
             document.getElementById('btn-pause').classList.remove('hidden');
-            document.getElementById('btn-pause').innerText = "ПАУЗА";
             document.getElementById('btn-stop').classList.remove('hidden');
             state.isPaused = false;
+            refreshButtonLabels();
 
             // Запуск підготовки
             state.phase = 'PREPARE';
@@ -574,23 +675,18 @@
         }
 
         function togglePause() {
-            const pauseBtn = document.getElementById('btn-pause');
-            const phaseTitleEl = document.getElementById('phase-title');
-
             if (state.isPaused) {
                 // ПРОДОВЖИТИ
                 state.isPaused = false;
                 timerInterval = setInterval(tick, 1000);
-                pauseBtn.innerText = "ПАУЗА";
-                updateScreen(); // повертаємо правильний підпис фази замість "ПАУЗА"
             } else {
                 // ПАУЗА
                 state.isPaused = true;
                 clearInterval(timerInterval);
                 timerInterval = null;
-                pauseBtn.innerText = "ПРОДОВЖИТИ";
-                phaseTitleEl.innerText = "⏸ ПАУЗА";
             }
+            refreshButtonLabels();
+            updateScreen();
         }
 
         // ==================== ФАЗОВІ ПЕРЕХОДИ ====================
@@ -619,9 +715,9 @@
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
-            document.getElementById('btn-start').innerText = "ПОЧАТИ ЗНОВУ";
             document.getElementById('btn-pause').classList.add('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
+            refreshButtonLabels();
         }
 
         function stopTraining() {
@@ -633,9 +729,9 @@
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
-            document.getElementById('btn-start').innerText = "СТАРТ";
             document.getElementById('btn-pause').classList.add('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
+            refreshButtonLabels();
         }
 
         // ==================== ВІДОБРАЖЕННЯ НА ЕКРАНІ ====================
@@ -658,63 +754,72 @@
         }
 
         function updateScreen() {
-            const statusCard = document.getElementById('status-card');
             const roundTitle = document.getElementById('round-title');
             const phaseTitle = document.getElementById('phase-title');
             const timerDisplay = document.getElementById('timer-display');
             const totalTime = document.getElementById('total-time');
+            const T = TRANSLATIONS[currentLang].status;
 
             if (state.phase === 'PREPARE') {
                 setStatusPhase('phase-prepare');
-                roundTitle.innerText = "ПІДГОТОВКА";
-                phaseTitle.innerText = config.isNormalMode ? "Готуємося до БОЮ" : "Готуємося до РУХУ";
-                timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : "ГО!";
-                totalTime.innerText = "Концентрація";
+                roundTitle.innerText = T.prepareTitle;
+                phaseTitle.innerText = config.isNormalMode ? T.prepareSubNormal : T.prepareSubInterval;
+                timerDisplay.innerText = state.timeRemaining > 0 ? state.timeRemaining : T.go;
+                totalTime.innerText = T.concentration;
             }
             else if (state.phase === 'ROUND') {
-                roundTitle.innerText = `Раунд ${state.currentRound} / ${config.rounds}`;
+                roundTitle.innerText = T.roundTitle(state.currentRound, config.rounds);
 
                 if (config.isNormalMode) {
                     // Зелений - класичний бокс. totalTime тут прибираємо -
                     // він би дублював великий таймер один в один
                     setStatusPhase('phase-normal');
-                    phaseTitle.innerText = "🥊 БІЙ 🥊";
+                    phaseTitle.innerText = T.normalPhase;
                     timerDisplay.innerText = formatTime(state.timeRemaining);
                     totalTime.innerText = "";
                 } else {
                     // Інтервали: тут totalTime корисний - показує час ДО КІНЦЯ РАУНДУ,
                     // поки великий таймер показує час поточного інтервалу (рух/вибух)
-                    totalTime.innerText = `Раунд закінчиться через: ${formatTime(state.timeRemaining)}`;
+                    totalTime.innerText = T.roundEndsIn(formatTime(state.timeRemaining));
                     if (state.isBurst) {
                         setStatusPhase('phase-burst');
-                        phaseTitle.innerText = "⚡ ВИБУХ (ШВИДКО) ⚡";
+                        phaseTitle.innerText = T.burstPhase;
                     } else {
                         setStatusPhase('phase-run');
-                        phaseTitle.innerText = "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️";
+                        phaseTitle.innerText = T.movePhase;
                     }
                     timerDisplay.innerText = formatTime(state.subPhaseTime);
                 }
             }
             else if (state.phase === 'REST') {
                 setStatusPhase('phase-rest');
-                roundTitle.innerText = "ВІДПОЧИНОК";
-                phaseTitle.innerText = `Готуйтесь до раунду ${state.currentRound + 1}`;
+                roundTitle.innerText = T.restTitle;
+                phaseTitle.innerText = T.restSubtitle(state.currentRound + 1);
                 timerDisplay.innerText = state.timeRemaining <= 5 ? state.timeRemaining : formatTime(state.timeRemaining);
-                totalTime.innerText = "Відновлюйте дихання";
+                totalTime.innerText = T.breathe;
             }
             else if (state.phase === 'FINISHED') {
                 setStatusPhase('phase-prepare');
-                roundTitle.innerText = "🏆 КІНЕЦЬ 🏆";
-                phaseTitle.innerText = "Тренування завершено!";
+                roundTitle.innerText = T.finishedTitle;
+                phaseTitle.innerText = T.finishedSubtitle;
                 timerDisplay.innerText = "00:00";
-                totalTime.innerText = "Чудова робота!";
+                totalTime.innerText = T.greatJob;
             }
             else if (state.phase === 'STOPPED') {
                 setStatusPhase('phase-prepare');
-                roundTitle.innerText = "ЗУПИНЕНО";
-                phaseTitle.innerText = "Тренування перервано";
+                if (hasStartedOnce) {
+                    roundTitle.innerText = T.stoppedTitle;
+                    phaseTitle.innerText = T.stoppedSubtitle;
+                } else {
+                    roundTitle.innerText = T.initialTitle;
+                    phaseTitle.innerText = T.initialSubtitle;
+                }
                 timerDisplay.innerText = "00:00";
-                totalTime.innerText = "Налаштуйте та тисніть Старт";
+                totalTime.innerText = T.setupPrompt;
+            }
+
+            if (state.isPaused) {
+                phaseTitle.innerText = T.pausedLabel;
             }
         }
 
@@ -746,7 +851,11 @@
                 window.location.reload();
             });
         }
+
+        // Застосовуємо збережену (або дефолтну) мову. Робимо це в самому кінці,
+        // коли всі функції (updateScreen, refreshButtonLabels) і змінна state
+        // вже оголошені та проініціалізовані.
+        setLanguage(currentLang);
     </script>
 </body>
 </html>
-
