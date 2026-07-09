@@ -19,6 +19,15 @@
         .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
         .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
 
+        /* Короткий світловий спалах картки в момент випадкового сигналу */
+        #status-card.signal-flash {
+            animation: signalPulse 0.5s ease-out;
+        }
+        @keyframes signalPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.9) inset; }
+            100% { box-shadow: 0 0 0 40px rgba(255,255,255,0) inset; }
+        }
+
         /* Повноекранний режим тренування: весь body фарбується кольором поточної
            фази (через CSS-змінну --phase-color), а картка стає прозорою —
            так колір заливає екран повністю, без "недофарбованого" низу */
@@ -124,8 +133,8 @@
          2. Створи сайт, тобі дадуть code (наприклад "myboxingtimer")
          3. Заміни ЗАМІНИ-МЕНЕ на свій code нижче — і все запрацює
          Дашборд буде на https://ТВІЙ-CODE.goatcounter.com -->
-    <script data-goatcounter="https://boxing-timer.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+    <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 transition-colors duration-500">
 
@@ -180,6 +189,17 @@
             <div class="col-span-2">
                 <label id="label-prepare" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
                 <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+            <div class="col-span-2 bg-zinc-800/50 rounded-xl p-3">
+                <label class="flex items-center gap-2 text-sm font-bold text-zinc-300 mb-3 cursor-pointer">
+                    <input type="checkbox" id="input-random-signal-enabled" class="w-5 h-5 accent-blue-500">
+                    <span id="label-random-signal">Випадковий сигнал (тільки класичний бій)</span>
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" id="btn-difficulty-easy" onclick="setSignalDifficulty('easy')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Легкий</button>
+                    <button type="button" id="btn-difficulty-medium" onclick="setSignalDifficulty('medium')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Середній</button>
+                    <button type="button" id="btn-difficulty-hard" onclick="setSignalDifficulty('hard')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Важкий</button>
+                </div>
             </div>
         </div>
 
@@ -261,7 +281,11 @@
                     move: "🏃‍♂️ Рух (сек)",
                     burst: "⚡ Вибух (сек)",
                     rest: "Відпочинок (сек)",
-                    prepare: "Підготовка перед стартом (сек)"
+                    prepare: "Підготовка перед стартом (сек)",
+                    randomSignal: "Випадковий сигнал (тільки класичний бій)",
+                    difficultyEasy: "Легкий",
+                    difficultyMedium: "Середній",
+                    difficultyHard: "Важкий"
                 },
                 buttons: {
                     start: "СТАРТ",
@@ -315,7 +339,11 @@
                     move: "🏃‍♂️ Move (sec)",
                     burst: "⚡ Burst (sec)",
                     rest: "Rest (sec)",
-                    prepare: "Prep before start (sec)"
+                    prepare: "Prep before start (sec)",
+                    randomSignal: "Random signal (classic fight only)",
+                    difficultyEasy: "Easy",
+                    difficultyMedium: "Medium",
+                    difficultyHard: "Hard"
                 },
                 buttons: {
                     start: "START",
@@ -384,6 +412,10 @@
             document.getElementById('label-burst').innerText = t.settingsLabels.burst;
             document.getElementById('label-rest').innerText = t.settingsLabels.rest;
             document.getElementById('label-prepare').innerText = t.settingsLabels.prepare;
+            document.getElementById('label-random-signal').innerText = t.settingsLabels.randomSignal;
+            document.getElementById('btn-difficulty-easy').innerText = t.settingsLabels.difficultyEasy;
+            document.getElementById('btn-difficulty-medium').innerText = t.settingsLabels.difficultyMedium;
+            document.getElementById('btn-difficulty-hard').innerText = t.settingsLabels.difficultyHard;
 
             // Кнопки і поточний екран статусу (фаза/раунд/таймер)
             refreshButtonLabels();
@@ -537,6 +569,68 @@
             document.getElementById(id).addEventListener('change', saveSettings);
         });
 
+        // ==================== ВИПАДКОВИЙ СИГНАЛ (КОМБО/ЗАХИСТ) ====================
+        // Діапазони пауз між сигналами в секундах [мін, макс] - чим менший
+        // діапазон, тим частіше і непередбачуваніше свистить
+        const SIGNAL_DIFFICULTY_RANGES = {
+            easy:   [12, 22],
+            medium: [8, 12],
+            hard:   [3, 8]
+        };
+        let signalDifficulty = 'medium';
+
+        function setSignalDifficulty(level) {
+            signalDifficulty = level;
+            ['easy', 'medium', 'hard'].forEach(l => {
+                const btn = document.getElementById(`btn-difficulty-${l}`);
+                btn.className = 'difficulty-btn py-2 rounded-lg text-xs font-bold ' +
+                    (l === level ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-zinc-300');
+            });
+            saveSignalSettings();
+        }
+
+        function saveSignalSettings() {
+            try {
+                localStorage.setItem('boxtimer-signal', JSON.stringify({
+                    enabled: document.getElementById('input-random-signal-enabled').checked,
+                    difficulty: signalDifficulty
+                }));
+            } catch (e) {}
+        }
+
+        function loadSignalSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('boxtimer-signal'));
+                if (saved) {
+                    document.getElementById('input-random-signal-enabled').checked = !!saved.enabled;
+                    setSignalDifficulty(saved.difficulty || 'medium');
+                    return;
+                }
+            } catch (e) {}
+            setSignalDifficulty('medium'); // дефолт, якщо нічого не збережено
+        }
+
+        document.getElementById('input-random-signal-enabled').addEventListener('change', saveSignalSettings);
+        loadSignalSettings();
+
+        // Обираємо, через скільки секунд пролунає наступний сигнал (в межах
+        // діапазону поточної складності) - викликається на старті кожного
+        // раунду і одразу після кожного спрацьованого сигналу
+        function scheduleNextSignal() {
+            const range = SIGNAL_DIFFICULTY_RANGES[config.signalDifficulty] || SIGNAL_DIFFICULTY_RANGES.medium;
+            state.nextSignalIn = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+        }
+
+        // Короткий білий спалах картки в момент сигналу - щоб було видно
+        // навіть якщо звук не почули (шумний зал, навушники в іншому вусі)
+        function flashSignal() {
+            const card = document.getElementById('status-card');
+            card.classList.remove('signal-flash');
+            void card.offsetWidth; // форсуємо перезапуск анімації, якщо спрацює двічі поспіль
+            card.classList.add('signal-flash');
+            setTimeout(() => card.classList.remove('signal-flash'), 500);
+        }
+
         function formatTime(s) {
             if (s < 0) s = 0;
             const m = Math.floor(s / 60).toString().padStart(2, '0');
@@ -604,7 +698,9 @@
                 runDur: getInt('input-slow-time', 0),
                 burstDur: getInt('input-fast-time', 0),
                 prepareDur: getInt('input-prepare-time', 5),
-                restDur: getInt('input-rest-time', 60)
+                restDur: getInt('input-rest-time', 60),
+                randomSignalEnabled: document.getElementById('input-random-signal-enabled').checked,
+                signalDifficulty: signalDifficulty
             };
             config.isNormalMode = (config.runDur === 0 && config.burstDur === 0);
 
@@ -643,6 +739,8 @@
                 // Якщо є інтервали, зменшуємо час інтервалу
                 if (!config.isNormalMode) {
                     state.subPhaseTime--;
+                } else if (config.randomSignalEnabled && state.nextSignalIn !== null) {
+                    state.nextSignalIn--;
                 }
 
                 // 10 Секунд до кінця раунду
@@ -664,6 +762,12 @@
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
 
                         playOneWhistle(); // Один свисток і на РУХ, і на ВИБУХ
+                    }
+                    // Випадковий сигнал для комбо/захисту (тільки класичний бій)
+                    else if (config.isNormalMode && config.randomSignalEnabled && state.nextSignalIn <= 0) {
+                        playOneWhistle();
+                        flashSignal();
+                        scheduleNextSignal();
                     }
                 }
             }
@@ -702,6 +806,11 @@
             state.timeRemaining = config.roundDur;
             state.subPhaseTime = config.runDur;
             state.isBurst = false;
+            if (config.isNormalMode && config.randomSignalEnabled) {
+                scheduleNextSignal();
+            } else {
+                state.nextSignalIn = null;
+            }
             stopAllSounds(); // Обриваємо тік, щоб не наповзав на гонг
             playGong(); // УДАР ГОНГУ НА ПОЧАТОК РАУНДУ
         }
