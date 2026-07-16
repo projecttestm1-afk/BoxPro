@@ -472,7 +472,6 @@
 
         // Функція для перетворення комбінації на голосовий текст українською
         function comboToSpeechUA(combo) {
-            // Замінюємо цифри на слова
             const numMap = {
                 '1': 'один',
                 '2': 'два',
@@ -483,7 +482,6 @@
                 '7': 'сім',
                 '8': 'вісім'
             };
-            // Розбиваємо на частини (розділені комами)
             const parts = combo.split(',').map(s => s.trim());
             const spoken = parts.map(p => {
                 let body = false;
@@ -499,7 +497,6 @@
             return spoken.join(', ');
         }
 
-        // Функція для англійської – просто цифри або назви
         function comboToSpeechEN(combo) {
             const numMap = {
                 '1': 'one',
@@ -787,11 +784,10 @@
                     if (!config.isNormalMode && state.subPhaseTime <= 0) {
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-                        playOneWhistle(); // випадковий свисток
+                        playOneWhistle();
                     }
-                    if (drillEnabled && !state.isPaused && !drillTimerId) {
-                        startDrillCycle();
-                    }
+                    // Якщо дрил увімкнено і немає активного таймера – запустити (але зараз він запускається з затримкою після гонгу)
+                    // Тут ми не запускаємо, щоб не дублювати
                 }
             }
             else if (state.phase === 'REST') {
@@ -808,7 +804,10 @@
             if (state.isPaused) {
                 state.isPaused = false;
                 timerInterval = setInterval(tick, 1000);
-                if (drillEnabled && state.phase === 'ROUND') startDrillCycle();
+                if (drillEnabled && state.phase === 'ROUND') {
+                    // Якщо дрил був активний, але зупинився, перезапускаємо
+                    if (!drillTimerId) startDrillCycle();
+                }
             } else {
                 state.isPaused = true;
                 clearInterval(timerInterval);
@@ -828,7 +827,15 @@
             playGong();
             const T = TRANSLATIONS[currentLang].status;
             speak(T.roundTitle(state.currentRound, config.rounds));
-            if (drillEnabled) startDrillCycle();
+
+            // Запускаємо дрил через 1 секунду після гонгу, щоб гонг не заважав голосу
+            if (drillEnabled) {
+                setTimeout(() => {
+                    if (state.phase === 'ROUND' && !state.isPaused) {
+                        startDrillCycle();
+                    }
+                }, 1000);
+            }
         }
 
         function startRest() {
