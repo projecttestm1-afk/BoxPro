@@ -12,25 +12,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body { background-color: #121212; color: #ffffff; font-family: system-ui, sans-serif; }
-        /* Ваші кольори фаз */
-        .phase-prepare { background-color: #1e3a8a; } /* Темно-синій для старту */
-        .phase-normal  { background-color: #16a34a; } /* Зелений - звичайна робота */
-        .phase-run     { background-color: #0ea5e9; } /* Голубий - рух */
-        .phase-burst   { background-color: #dc2626; } /* Червоний - вибух */
-        .phase-rest    { background-color: #4b5563; } /* Сірий - відпочинок */
+        .phase-prepare { background-color: #1e3a8a; }
+        .phase-normal  { background-color: #16a34a; }
+        .phase-run     { background-color: #0ea5e9; }
+        .phase-burst   { background-color: #dc2626; }
+        .phase-rest    { background-color: #4b5563; }
 
-        /* Короткий світловий спалах картки в момент випадкового сигналу */
-        #status-card.signal-flash {
-            animation: signalPulse 0.5s ease-out;
-        }
-        @keyframes signalPulse {
-            0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.9) inset; }
-            100% { box-shadow: 0 0 0 40px rgba(255,255,255,0) inset; }
-        }
-
-        /* Повноекранний режим тренування: весь body фарбується кольором поточної
-           фази (через CSS-змінну --phase-color), а картка стає прозорою —
-           так колір заливає екран повністю, без "недофарбованого" низу */
         body.training-fullscreen {
             background-color: var(--phase-color, #121212);
             transition: background-color 0.5s;
@@ -61,8 +48,6 @@
             background-color: transparent !important;
             min-height: 0;
         }
-        /* vmin (не vw!) — розмір рахується від МЕНШОЇ сторони екрана,
-           тому цифри не роздуваються при переворотах у горизонтальний режим */
         body.training-fullscreen #timer-display {
             font-size: clamp(6rem, 34vmin, 22rem);
             line-height: 1;
@@ -80,8 +65,6 @@
             font-size: clamp(0.8rem, 4vmin, 1.25rem);
             flex-shrink: 0;
         }
-        /* В горизонтальній орієнтації менше вертикального простору —
-           трохи стискаємо відступи, щоб round-title гарантовано влазив */
         @media (orientation: landscape) {
             body.training-fullscreen #status-card {
                 padding: 1rem;
@@ -106,10 +89,6 @@
             height: 2.25rem;
         }
 
-        /* ФОЛБЕК: якщо телефон фізично тримають вертикально (портрет),
-           а screen.orientation.lock не спрацював (Safari/iOS не підтримує
-           цей API взагалі) — примусово розвертаємо вміст на 90°, щоб
-           виглядало як горизонтальний екран без реального повороту телефону */
         @media (orientation: portrait) {
             body.training-fullscreen .app-card {
                 position: fixed;
@@ -126,13 +105,51 @@
                 font-size: clamp(6rem, 40vmin, 20rem);
             }
         }
+
+        /* Додаткові стилі для нових елементів */
+        .drill-section {
+            border-top: 1px solid #2a2a2a;
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+        .drill-section select, .drill-section input {
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            color: #fff;
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-weight: bold;
+        }
+        .drill-section select:focus, .drill-section input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .drill-btn {
+            background: #8b5cf6;
+            transition: all 0.2s;
+        }
+        .drill-btn:hover {
+            background: #7c3aed;
+            transform: scale(1.02);
+        }
+        .music-btn {
+            background: #2d2d2d;
+            transition: all 0.2s;
+        }
+        .music-btn:hover {
+            background: #3d3d3d;
+        }
+        .music-btn.playing {
+            background: #22c55e;
+            color: #000;
+        }
+        #music-volume {
+            width: 60px;
+            accent-color: #22c55e;
+        }
     </style>
 
-    <!-- ==================== АНАЛІТИКА (GoatCounter) ====================
-         1. Зареєструйся на https://www.goatcounter.com (безкоштовно)
-         2. Створи сайт, тобі дадуть code (наприклад "myboxingtimer")
-         3. Заміни ЗАМІНИ-МЕНЕ на свій code нижче — і все запрацює
-         Дашборд буде на https://ТВІЙ-CODE.goatcounter.com -->
+    <!-- ==================== АНАЛІТИКА (GoatCounter) ==================== -->
     <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
 </head>
@@ -140,7 +157,7 @@
 
     <div class="app-card w-full max-w-md bg-zinc-900/90 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-center relative">
 
-        <!-- Верхня панель: шестерня (налаштування) і розтягнення (великі цифри) -->
+        <!-- Верхня панель -->
         <div class="flex justify-between items-center mb-4">
             <button id="btn-expand" onclick="toggleFullscreenView()" title="Розтягнути на весь екран"
                 class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">
@@ -164,41 +181,61 @@
             <p id="total-time" class="text-sm text-zinc-400 font-bold">Час раунду: 00:00</p>
         </div>
 
-        <!-- Налаштування -->
-        <div id="settings-box" class="grid grid-cols-2 gap-4 text-left mb-6">
-            <div>
-                <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
-                <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+        <!-- Налаштування + Дрили -->
+        <div id="settings-box" class="text-left mb-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
+                    <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label id="label-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
+                    <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label id="label-move" class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
+                    <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
+                </div>
+                <div>
+                    <label id="label-burst" class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
+                    <input type="number" id="input-fast-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-red-500 transition-colors">
+                </div>
+                <div class="col-span-2">
+                    <label id="label-rest" class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
+                    <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
+                </div>
+                <div class="col-span-2">
+                    <label id="label-prepare" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
+                    <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
             </div>
-            <div>
-                <label id="label-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
-                <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
-            </div>
-            <div>
-                <label id="label-move" class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
-                <input type="number" id="input-slow-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-sky-500 transition-colors">
-            </div>
-            <div>
-                <label id="label-burst" class="text-xs text-red-400 font-black uppercase block mb-1">⚡ Вибух (сек)</label>
-                <input type="number" id="input-fast-time" value="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-red-500 transition-colors">
-            </div>
-            <div class="col-span-2">
-                <label id="label-rest" class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
-                <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
-            </div>
-            <div class="col-span-2">
-                <label id="label-prepare" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
-                <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
-            </div>
-            <div class="col-span-2 bg-zinc-800/50 rounded-xl p-3">
-                <label class="flex items-center gap-2 text-sm font-bold text-zinc-300 mb-3 cursor-pointer">
-                    <input type="checkbox" id="input-random-signal-enabled" class="w-5 h-5 accent-blue-500">
-                    <span id="label-random-signal">Випадковий сигнал (тільки класичний бій)</span>
-                </label>
-                <div class="grid grid-cols-3 gap-2">
-                    <button type="button" id="btn-difficulty-easy" onclick="setSignalDifficulty('easy')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Легкий</button>
-                    <button type="button" id="btn-difficulty-medium" onclick="setSignalDifficulty('medium')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Середній</button>
-                    <button type="button" id="btn-difficulty-hard" onclick="setSignalDifficulty('hard')" class="difficulty-btn py-2 rounded-lg text-xs font-bold bg-zinc-700 text-zinc-300">Важкий</button>
+
+            <!-- === НОВИЙ БЛОК: ДРИЛИ === -->
+            <div class="drill-section">
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="text-xs text-purple-400 font-black uppercase block mb-1">Тип комбінації</label>
+                        <select id="drill-type" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2 text-white font-bold focus:outline-none focus:border-purple-500">
+                            <option value="attack">⚔️ Атака</option>
+                            <option value="defense">🛡️ Захист</option>
+                            <option value="counter">💥 Контратака</option>
+                            <option value="meeting">🤝 Зустрічна</option>
+                        </select>
+                    </div>
+                    <div class="w-20">
+                        <label class="text-xs text-purple-400 font-black uppercase block mb-1">Повтори</label>
+                        <input type="number" id="input-repeats" value="3" min="1" max="10" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-2 text-white font-bold text-center focus:outline-none focus:border-purple-500">
+                    </div>
+                    <button onclick="executeDrill()" class="drill-btn flex-1 py-2 px-3 rounded-xl text-white font-black uppercase text-sm tracking-wide shadow-lg shadow-purple-900/30">
+                        🥊 Виконати
+                    </button>
+                </div>
+                <div class="mt-3 flex items-center gap-3 flex-wrap">
+                    <button id="music-toggle" onclick="toggleMusic()" class="music-btn flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm">
+                        <span id="music-icon">🔇</span> <span id="music-label">Музика</span>
+                    </button>
+                    <input type="range" id="music-volume" min="0" max="100" value="30" class="w-24">
+                    <label for="music-volume" class="text-xs text-zinc-400">гучність</label>
                 </div>
             </div>
         </div>
@@ -219,7 +256,6 @@
                 <button onclick="closeSettingsModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300">✕</button>
             </div>
 
-            <!-- Вибір мови -->
             <div class="mb-5">
                 <p id="modal-lang-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Мова</p>
                 <div class="flex gap-3">
@@ -228,7 +264,6 @@
                 </div>
             </div>
 
-            <!-- Інструкція -->
             <div>
                 <p id="modal-instructions-label" class="text-xs text-zinc-400 font-black uppercase mb-2">Як користуватись</p>
                 <ul id="modal-instructions-text" class="text-sm text-zinc-300 space-y-2 leading-relaxed list-disc list-inside">
@@ -238,6 +273,7 @@
                     <li>Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.</li>
                     <li>Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.</li>
                     <li>Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.</li>
+                    <li><span class="text-purple-400">Нове:</span> обирай тип комбінації, кількість повторів і тисни "Виконати" — голосове озвучення та свистки допоможуть відпрацювати.</li>
                 </ul>
             </div>
 
@@ -250,6 +286,12 @@
             </div>
         </div>
     </div>
+
+    <!-- ===== ПРИХОВАНИЙ АУДІО-ПЛЕЄР ДЛЯ МУЗИКИ ===== -->
+    <audio id="music-player" loop class="hidden">
+        <source src="my-training-mix.mp3" type="audio/mpeg">
+        <!-- Якщо немає файлу, можна використати fallback (тиша) -->
+    </audio>
 
     <script>
         // ==================== НАЛАШТУВАННЯ / МОВА ====================
@@ -271,7 +313,8 @@
                     "Тисни СТАРТ — почнеться відлік підготовки, потім гонг і перший раунд.",
                     "Кнопка ПАУЗА зупиняє і продовжує таймер з того самого місця.",
                     "Кнопка ⤢ у верхньому лівому куті розтягує цифри на весь екран.",
-                    "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань."
+                    "Щоб дійсно розвернути телефон боком — вимкни блокування повороту в шторці швидких налаштувань.",
+                    "Нове: обирай тип комбінації, кількість повторів і тисни \"Виконати\" — голосове озвучення та свистки допоможуть відпрацювати."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Автор",
@@ -281,11 +324,7 @@
                     move: "🏃‍♂️ Рух (сек)",
                     burst: "⚡ Вибух (сек)",
                     rest: "Відпочинок (сек)",
-                    prepare: "Підготовка перед стартом (сек)",
-                    randomSignal: "Випадковий сигнал (тільки класичний бій)",
-                    difficultyEasy: "Легкий",
-                    difficultyMedium: "Середній",
-                    difficultyHard: "Важкий"
+                    prepare: "Підготовка перед стартом (сек)"
                 },
                 buttons: {
                     start: "СТАРТ",
@@ -317,6 +356,12 @@
                     stoppedSubtitle: "Тренування перервано",
                     setupPrompt: "Налаштуйте та тисніть Старт",
                     pausedLabel: "⏸ ПАУЗА"
+                },
+                drillLabels: {
+                    attack: "⚔️ Атака",
+                    defense: "🛡️ Захист",
+                    counter: "💥 Контратака",
+                    meeting: "🤝 Зустрічна"
                 }
             },
             en: {
@@ -329,7 +374,8 @@
                     "Tap START — a prep countdown begins, then a gong and the first round.",
                     "The PAUSE button stops and resumes the timer from the same spot.",
                     "The ⤢ button in the top-left corner stretches the numbers to full screen.",
-                    "To actually rotate your phone sideways — turn off rotation lock in your quick settings."
+                    "To actually rotate your phone sideways — turn off rotation lock in your quick settings.",
+                    "New: choose a drill type, repeats, and press 'Execute' — voice guidance and whistles help you practice."
                 ],
                 footer: "Box & Run Interval Timer",
                 authorLabel: "Author",
@@ -339,11 +385,7 @@
                     move: "🏃‍♂️ Move (sec)",
                     burst: "⚡ Burst (sec)",
                     rest: "Rest (sec)",
-                    prepare: "Prep before start (sec)",
-                    randomSignal: "Random signal (classic fight only)",
-                    difficultyEasy: "Easy",
-                    difficultyMedium: "Medium",
-                    difficultyHard: "Hard"
+                    prepare: "Prep before start (sec)"
                 },
                 buttons: {
                     start: "START",
@@ -375,6 +417,12 @@
                     stoppedSubtitle: "Workout interrupted",
                     setupPrompt: "Set up and tap Start",
                     pausedLabel: "⏸ PAUSED"
+                },
+                drillLabels: {
+                    attack: "⚔️ Attack",
+                    defense: "🛡️ Defense",
+                    counter: "💥 Counter",
+                    meeting: "🤝 Meeting"
                 }
             }
         };
@@ -395,7 +443,6 @@
 
             const t = TRANSLATIONS[lang];
 
-            // Модалка
             document.getElementById('modal-title').innerText = t.modalTitle;
             document.getElementById('modal-lang-label').innerText = t.langLabel;
             document.getElementById('modal-instructions-label').innerText = t.instructionsLabel;
@@ -405,23 +452,16 @@
             document.getElementById('modal-author-label').innerText = t.authorLabel;
             document.documentElement.lang = lang;
 
-            // Підписи полів налаштувань
             document.getElementById('label-rounds').innerText = t.settingsLabels.rounds;
             document.getElementById('label-round-time').innerText = t.settingsLabels.roundTime;
             document.getElementById('label-move').innerText = t.settingsLabels.move;
             document.getElementById('label-burst').innerText = t.settingsLabels.burst;
             document.getElementById('label-rest').innerText = t.settingsLabels.rest;
             document.getElementById('label-prepare').innerText = t.settingsLabels.prepare;
-            document.getElementById('label-random-signal').innerText = t.settingsLabels.randomSignal;
-            document.getElementById('btn-difficulty-easy').innerText = t.settingsLabels.difficultyEasy;
-            document.getElementById('btn-difficulty-medium').innerText = t.settingsLabels.difficultyMedium;
-            document.getElementById('btn-difficulty-hard').innerText = t.settingsLabels.difficultyHard;
 
-            // Кнопки і поточний екран статусу (фаза/раунд/таймер)
             refreshButtonLabels();
             updateScreen();
 
-            // Підсвічуємо активну кнопку мови
             const ukBtn = document.getElementById('btn-lang-uk');
             const enBtn = document.getElementById('btn-lang-en');
             if (lang === 'uk') {
@@ -431,21 +471,27 @@
                 enBtn.className = "flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white";
                 ukBtn.className = "flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300";
             }
+
+            // Оновити текст у випадаючому списку дрилів
+            const drillSelect = document.getElementById('drill-type');
+            const drillLabels = t.drillLabels;
+            for (let option of drillSelect.options) {
+                const key = option.value;
+                if (drillLabels[key]) {
+                    option.text = drillLabels[key];
+                }
+            }
         }
 
-        // Мову застосуємо в кінці скрипта, коли вже оголошені state/updateScreen
-
-        // ==================== АУДІО ДВИЖОК (РЕАЛЬНІ ФАЙЛИ) ====================
-        // Кладіть свої mp3-файли у папку /sounds поруч з index.html
-        // Точні назви файлів, які очікує цей код:
+        // ==================== АУДІО ДВИЖОК ====================
         const SOUND_FILES = {
-            gong:     'sounds/gong.mp3',      // Удар гонгу — старт раунду / відпочинку / фініш
-            whistle:  'sounds/whistle.mp3',   // Суддівський свисток — перемикання рух/вибух
-            warning:  'sounds/warning.mp3',   // Коротка відсічка за 10 сек до кінця раунду
-            tick:     'sounds/tick.mp3'       // Короткий "пік" для відліку підготовки/відпочинку
+            gong:     'sounds/gong.mp3',
+            whistle:  'sounds/whistle.mp3',
+            warning:  'sounds/warning.mp3',
+            tick:     'sounds/tick.mp3',
+            applause: 'sounds/applause.mp3'   // Новий звук
         };
 
-        // Кеш готових Audio-об'єктів (щоб не створювати їх щоразу заново)
         const audioCache = {};
         let audioUnlocked = false;
 
@@ -457,8 +503,6 @@
             });
         }
 
-        // iOS/Android блокують автоплей звуку, поки не буде явного жесту користувача.
-        // Тому "розблоковуємо" аудіо прямо в обробнику кліку на кнопку СТАРТ.
         function unlockAudio() {
             if (audioUnlocked) return;
             Object.values(audioCache).forEach(audio => {
@@ -472,9 +516,6 @@
             audioUnlocked = true;
         }
 
-        // Відстежуємо всі зараз активні (ще не дограні) звуки, щоб можна було
-        // примусово обірвати їх у момент зміни фази (наприклад, тік не мав
-        // "наповзати" на гонг наступного раунду)
         let activeAudios = [];
 
         function playSound(name, volume = 1) {
@@ -496,8 +537,6 @@
             }
         }
 
-        // Миттєво обриває всі звуки, що ще програються (використовується
-        // перед гонгом, щоб попередній тік не долунав у нову фазу)
         function stopAllSounds() {
             activeAudios.forEach(a => {
                 try { a.pause(); a.currentTime = 0; } catch (e) {}
@@ -507,24 +546,104 @@
 
         function playGong()        { playSound('gong'); }
         function playOneWhistle()  { playSound('whistle'); }
-        function playTwoWhistles() {
-            playSound('whistle');
-            setTimeout(() => playSound('whistle'), 800);
-        }
         function play10SecWarning() { playSound('warning'); }
         function playTick()         { playSound('tick', 0.6); }
+        function playApplause()     { playSound('applause'); }
 
-        // Запускаємо завантаження файлів одразу при відкритті сторінки
         preloadSounds();
+
+        // ==================== ГОЛОСОВИЙ ПОМІЧНИК ====================
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
+                utterance.rate = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // ==================== ДРИЛИ ====================
+        const DRILLS = {
+            attack: ["Двійка, зсув", "Джеб, крос, хук", "Прямий, аперкот", "Крос, хук, крок назад"],
+            defense: ["Ухил вліво, ухил вправо", "Підсів, блок, крок назад", "Блок, крок, ухил"],
+            counter: ["Блок, лівий хук", "Ухил, правий крос", "Відхід, джеб, крос"],
+            meeting: ["Зустрічний джеб", "Зустрічний аперкот", "Зустрічний хук з кроком"]
+        };
+
+        function getDrillLabel(type) {
+            const labels = TRANSLATIONS[currentLang].drillLabels;
+            return labels[type] || type;
+        }
+
+        async function executeDrill() {
+            const type = document.getElementById('drill-type').value;
+            const combos = DRILLS[type];
+            if (!combos || combos.length === 0) {
+                speak("Немає комбінацій для цього типу");
+                return;
+            }
+            const selectedCombo = combos[Math.floor(Math.random() * combos.length)];
+            const repeats = parseInt(document.getElementById('input-repeats').value) || 3;
+            const typeLabel = getDrillLabel(type);
+
+            // Озвучуємо
+            speak(`${typeLabel}: ${selectedCombo}, ${repeats} разів`);
+
+            // Пауза для підготовки
+            await sleep(2000);
+
+            for (let i = 0; i < repeats; i++) {
+                playOneWhistle();
+                await sleep(1500);
+            }
+
+            // Коротке повідомлення про завершення серії
+            speak("Готово");
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ==================== МУЗИКА ====================
+        let musicPlaying = false;
+        const musicPlayer = document.getElementById('music-player');
+        const musicToggle = document.getElementById('music-toggle');
+        const musicIcon = document.getElementById('music-icon');
+        const musicLabel = document.getElementById('music-label');
+        const musicVolume = document.getElementById('music-volume');
+
+        function toggleMusic() {
+            if (musicPlaying) {
+                musicPlayer.pause();
+                musicPlaying = false;
+                musicIcon.textContent = '🔇';
+                musicLabel.textContent = 'Музика';
+                musicToggle.classList.remove('playing');
+            } else {
+                musicPlayer.play().catch(e => {
+                    console.log('Не вдалося відтворити музику:', e);
+                    speak('Не вдалося завантажити музичний файл');
+                });
+                musicPlaying = true;
+                musicIcon.textContent = '🎵';
+                musicLabel.textContent = 'Грає';
+                musicToggle.classList.add('playing');
+            }
+        }
+
+        musicVolume.addEventListener('input', function() {
+            musicPlayer.volume = this.value / 100;
+        });
 
         // ==================== ЛОГІКА ТАЙМЕРА ====================
         let timerInterval = null;
         let wakeLock = null;
 
-        // Стан системи
         let config = {};
         let state = {
-            phase: 'STOPPED', // PREPARE, ROUND, REST, FINISHED
+            phase: 'STOPPED',
             currentRound: 1,
             timeRemaining: 0,
             subPhaseTime: 0,
@@ -561,75 +680,10 @@
             } catch (e) {}
         }
 
-        // Відновлюємо збережені значення одразу при завантаженні сторінки
         loadSettings();
-
-        // Зберігаємо кожного разу, коли користувач міняє будь-яке поле
         SETTINGS_INPUT_IDS.forEach(id => {
             document.getElementById(id).addEventListener('change', saveSettings);
         });
-
-        // ==================== ВИПАДКОВИЙ СИГНАЛ (КОМБО/ЗАХИСТ) ====================
-        // Діапазони пауз між сигналами в секундах [мін, макс] - чим менший
-        // діапазон, тим частіше і непередбачуваніше свистить
-        const SIGNAL_DIFFICULTY_RANGES = {
-            easy:   [12, 18],
-            medium: [8, 12],
-            hard:   [3, 8]
-        };
-        let signalDifficulty = 'medium';
-
-        function setSignalDifficulty(level) {
-            signalDifficulty = level;
-            ['easy', 'medium', 'hard'].forEach(l => {
-                const btn = document.getElementById(`btn-difficulty-${l}`);
-                btn.className = 'difficulty-btn py-2 rounded-lg text-xs font-bold ' +
-                    (l === level ? 'bg-blue-600 text-white' : 'bg-zinc-700 text-zinc-300');
-            });
-            saveSignalSettings();
-        }
-
-        function saveSignalSettings() {
-            try {
-                localStorage.setItem('boxtimer-signal', JSON.stringify({
-                    enabled: document.getElementById('input-random-signal-enabled').checked,
-                    difficulty: signalDifficulty
-                }));
-            } catch (e) {}
-        }
-
-        function loadSignalSettings() {
-            try {
-                const saved = JSON.parse(localStorage.getItem('boxtimer-signal'));
-                if (saved) {
-                    document.getElementById('input-random-signal-enabled').checked = !!saved.enabled;
-                    setSignalDifficulty(saved.difficulty || 'medium');
-                    return;
-                }
-            } catch (e) {}
-            setSignalDifficulty('medium'); // дефолт, якщо нічого не збережено
-        }
-
-        document.getElementById('input-random-signal-enabled').addEventListener('change', saveSignalSettings);
-        loadSignalSettings();
-
-        // Обираємо, через скільки секунд пролунає наступний сигнал (в межах
-        // діапазону поточної складності) - викликається на старті кожного
-        // раунду і одразу після кожного спрацьованого сигналу
-        function scheduleNextSignal() {
-            const range = SIGNAL_DIFFICULTY_RANGES[config.signalDifficulty] || SIGNAL_DIFFICULTY_RANGES.medium;
-            state.nextSignalIn = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-        }
-
-        // Короткий білий спалах картки в момент сигналу - щоб було видно
-        // навіть якщо звук не почули (шумний зал, навушники в іншому вусі)
-        function flashSignal() {
-            const card = document.getElementById('status-card');
-            card.classList.remove('signal-flash');
-            void card.offsetWidth; // форсуємо перезапуск анімації, якщо спрацює двічі поспіль
-            card.classList.add('signal-flash');
-            setTimeout(() => card.classList.remove('signal-flash'), 500);
-        }
 
         function formatTime(s) {
             if (s < 0) s = 0;
@@ -656,8 +710,6 @@
             };
 
             if (req) {
-                // Пробуємо лок і після успішного fullscreen, і навіть якщо fullscreen відхилено —
-                // на встановлених PWA (standalone) лок іноді працює без fullscreen взагалі
                 req.call(el).then(tryLockLandscape).catch(tryLockLandscape);
             } else {
                 tryLockLandscape();
@@ -691,20 +743,16 @@
             saveSettings();
             await requestWakeLock();
 
-            // Збираємо налаштування
             config = {
                 rounds: getInt('input-rounds', 3),
                 roundDur: getInt('input-round-time', 180),
                 runDur: getInt('input-slow-time', 0),
                 burstDur: getInt('input-fast-time', 0),
                 prepareDur: getInt('input-prepare-time', 5),
-                restDur: getInt('input-rest-time', 60),
-                randomSignalEnabled: document.getElementById('input-random-signal-enabled').checked,
-                signalDifficulty: signalDifficulty
+                restDur: getInt('input-rest-time', 60)
             };
             config.isNormalMode = (config.runDur === 0 && config.burstDur === 0);
 
-            // Оновлюємо UI кнопок
             hasStartedOnce = true;
             document.getElementById('settings-box').classList.add('hidden');
             document.getElementById('btn-start').classList.add('hidden');
@@ -713,19 +761,15 @@
             state.isPaused = false;
             refreshButtonLabels();
 
-            // Запуск підготовки
             state.phase = 'PREPARE';
             state.currentRound = 1;
-            state.timeRemaining = config.prepareDur; // Тривалість підготовки з налаштувань
+            state.timeRemaining = config.prepareDur;
 
             updateScreen();
-
-            // Головний цикл таймера (кожної секунди)
             timerInterval = setInterval(tick, 1000);
         }
 
         function tick() {
-            // Зменшуємо головний час
             state.timeRemaining--;
 
             if (state.phase === 'PREPARE') {
@@ -736,38 +780,25 @@
                 }
             }
             else if (state.phase === 'ROUND') {
-                // Якщо є інтервали, зменшуємо час інтервалу
                 if (!config.isNormalMode) {
                     state.subPhaseTime--;
-                } else if (config.randomSignalEnabled && state.nextSignalIn !== null) {
-                    state.nextSignalIn--;
                 }
 
-                // 10 Секунд до кінця раунду
                 if (state.timeRemaining === 10) {
                     play10SecWarning();
                 }
 
                 if (state.timeRemaining <= 0) {
-                    // Раунд закінчився
                     if (state.currentRound >= config.rounds) {
                         finishTraining();
                     } else {
                         startRest();
                     }
                 } else {
-                    // Перемикання інтервалів всередині раунду
                     if (!config.isNormalMode && state.subPhaseTime <= 0) {
                         state.isBurst = !state.isBurst;
                         state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
-
-                        playOneWhistle(); // Один свисток і на РУХ, і на ВИБУХ
-                    }
-                    // Випадковий сигнал для комбо/захисту (тільки класичний бій)
-                    else if (config.isNormalMode && config.randomSignalEnabled && state.nextSignalIn <= 0) {
                         playOneWhistle();
-                        flashSignal();
-                        scheduleNextSignal();
                     }
                 }
             }
@@ -787,11 +818,9 @@
 
         function togglePause() {
             if (state.isPaused) {
-                // ПРОДОВЖИТИ
                 state.isPaused = false;
                 timerInterval = setInterval(tick, 1000);
             } else {
-                // ПАУЗА
                 state.isPaused = true;
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -806,28 +835,45 @@
             state.timeRemaining = config.roundDur;
             state.subPhaseTime = config.runDur;
             state.isBurst = false;
-            if (config.isNormalMode && config.randomSignalEnabled) {
-                scheduleNextSignal();
-            } else {
-                state.nextSignalIn = null;
-            }
-            stopAllSounds(); // Обриваємо тік, щоб не наповзав на гонг
-            playGong(); // УДАР ГОНГУ НА ПОЧАТОК РАУНДУ
+            stopAllSounds();
+            playGong();
+
+            // Озвучуємо номер раунду (голосом)
+            const T = TRANSLATIONS[currentLang].status;
+            const roundText = T.roundTitle(state.currentRound, config.rounds);
+            speak(roundText);
+
+            // Якщо не інтервальний режим — можна запропонувати дрил (але не автоматично)
+            // Користувач сам натисне "Виконати"
         }
 
         function startRest() {
             state.phase = 'REST';
             state.timeRemaining = config.restDur;
-            stopAllSounds(); // Обриваємо звуки минулої фази
-            playGong(); // УДАР ГОНГУ НА ВІДПОЧИНОК
+            stopAllSounds();
+            playGong();
+            const T = TRANSLATIONS[currentLang].status;
+            speak(T.restTitle + '. ' + T.restSubtitle(state.currentRound + 1));
         }
 
         function finishTraining() {
             state.phase = 'FINISHED';
             state.timeRemaining = 0;
             clearInterval(timerInterval);
-            stopAllSounds(); // Обриваємо звуки минулої фази
-            playGong(); // ФІНАЛЬНИЙ ГОНГ
+            stopAllSounds();
+
+            // Фінальні ефекти
+            playApplause();
+            const T = TRANSLATIONS[currentLang].status;
+            speak("Час вийшов! Ай, молодець, гарна робота!"); // українською завжди для емоції
+
+            // Візуальний фінал
+            const card = document.getElementById('status-card');
+            card.classList.add('bg-yellow-600');
+            document.getElementById('round-title').innerText = "🏆 ЧЕМПІОН! 🏆";
+
+            // Також оновлюємо стандартний текст
+            updateScreen();
 
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -843,6 +889,9 @@
             state.isPaused = false;
             updateScreen();
 
+            // Якщо був фінальний жовтий фон — прибираємо
+            document.getElementById('status-card').classList.remove('bg-yellow-600');
+
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-pause').classList.add('hidden');
@@ -851,7 +900,6 @@
         }
 
         // ==================== ВІДОБРАЖЕННЯ НА ЕКРАНІ ====================
-        // Кольори фаз (мають збігатись зі значеннями в CSS-класах .phase-*)
         const PHASE_COLORS = {
             'phase-prepare': '#1e3a8a',
             'phase-normal':  '#16a34a',
@@ -860,11 +908,10 @@
             'phase-rest':    '#4b5563'
         };
 
-        // Встановлює клас фази на картці ТА синхронізує колір фону всього
-        // екрана (через CSS-змінну), щоб у повноекранному режимі заливка
-        // була суцільною, а не тільки у верхній картці
         function setStatusPhase(phaseClass) {
             const statusCard = document.getElementById('status-card');
+            // Якщо фініш — не змінюємо фон (він жовтий)
+            if (state.phase === 'FINISHED') return;
             statusCard.className = `rounded-2xl p-6 mb-6 transition-colors duration-500 ${phaseClass}`;
             document.body.style.setProperty('--phase-color', PHASE_COLORS[phaseClass] || '#121212');
         }
@@ -887,15 +934,11 @@
                 roundTitle.innerText = T.roundTitle(state.currentRound, config.rounds);
 
                 if (config.isNormalMode) {
-                    // Зелений - класичний бокс. totalTime тут прибираємо -
-                    // він би дублював великий таймер один в один
                     setStatusPhase('phase-normal');
                     phaseTitle.innerText = T.normalPhase;
                     timerDisplay.innerText = formatTime(state.timeRemaining);
                     totalTime.innerText = "";
                 } else {
-                    // Інтервали: тут totalTime корисний - показує час ДО КІНЦЯ РАУНДУ,
-                    // поки великий таймер показує час поточного інтервалу (рух/вибух)
                     totalTime.innerText = T.roundEndsIn(formatTime(state.timeRemaining));
                     if (state.isBurst) {
                         setStatusPhase('phase-burst');
@@ -915,7 +958,7 @@
                 totalTime.innerText = T.breathe;
             }
             else if (state.phase === 'FINISHED') {
-                setStatusPhase('phase-prepare');
+                // Фон вже жовтий, не чіпаємо
                 roundTitle.innerText = T.finishedTitle;
                 phaseTitle.innerText = T.finishedSubtitle;
                 timerDisplay.innerText = "00:00";
@@ -939,8 +982,6 @@
             }
         }
 
-        // Якщо користувач вийшов з fullscreen вручну (свайп/кнопка "назад"),
-        // прибираємо клас, щоб великий шрифт не лишався в звичайному вікні
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
                 document.body.classList.remove('training-fullscreen');
@@ -956,10 +997,6 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
 
-            // Коли нова версія sw.js бере контроль над сторінкою (після того,
-            // як ти заливаєш оновлення і бампаєш CACHE_NAME) - перезавантажуємо
-            // один раз, щоб користувач одразу побачив нову версію, а не стару
-            // з пам'яті вкладки. reloaded-прапорець захищає від зациклення.
             let reloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (reloaded) return;
@@ -968,9 +1005,7 @@
             });
         }
 
-        // Застосовуємо збережену (або дефолтну) мову. Робимо це в самому кінці,
-        // коли всі функції (updateScreen, refreshButtonLabels) і змінна state
-        // вже оголошені та проініціалізовані.
+        // ==================== ІНІЦІАЛІЗАЦІЯ ====================
         setLanguage(currentLang);
     </script>
 </body>
