@@ -76,11 +76,11 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
-                    <input type="number" id="input-rounds" value="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                    <input type="number" id="input-rounds" value="3" min="1" max="30" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
                 </div>
                 <div>
                     <label id="label-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
-                    <input type="number" id="input-round-time" value="180" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                    <input type="number" id="input-round-time" value="180" min="10" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
                 </div>
                 <div>
                     <label id="label-move" class="text-xs text-sky-400 font-black uppercase block mb-1">🏃‍♂️ Рух (сек)</label>
@@ -92,11 +92,11 @@
                 </div>
                 <div class="col-span-2">
                     <label id="label-rest" class="text-xs text-zinc-400 font-black uppercase block mb-1">Відпочинок (сек)</label>
-                    <input type="number" id="input-rest-time" value="60" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
+                    <input type="number" id="input-rest-time" value="60" min="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-gray-500 transition-colors">
                 </div>
                 <div class="col-span-2">
                     <label id="label-prepare" class="text-xs text-zinc-400 font-black uppercase block mb-1">Підготовка перед стартом (сек)</label>
-                    <input type="number" id="input-prepare-time" value="5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                    <input type="number" id="input-prepare-time" value="5" min="0" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
                 </div>
             </div>
 
@@ -106,15 +106,6 @@
                     <button id="drill-toggle" class="drill-toggle" onclick="toggleDrill()">Вимк.</button>
                 </div>
                 <div id="drill-controls" class="drill-options" style="display:none;">
-                    <div>
-                        <label class="text-xs text-purple-400 font-black uppercase">Тип</label>
-                        <select id="drill-type" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-1 text-white font-bold">
-                            <option value="attack">⚔️ Атака</option>
-                            <option value="defense">🛡️ Захист</option>
-                            <option value="counter">💥 Контратака</option>
-                            <option value="meeting">🤝 Зустрічна</option>
-                        </select>
-                    </div>
                     <div>
                         <label class="text-xs text-purple-400 font-black uppercase block">Інтенсивність</label>
                         <div class="flex gap-1 mt-1">
@@ -131,6 +122,13 @@
                         <input type="checkbox" id="drill-free" onchange="updateDrillMode()">
                         <span class="text-sm">Вільний</span>
                     </label>
+                </div>
+                <div id="round-plan-wrap" style="display:none;" class="mt-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <label id="label-round-plan" class="text-xs text-purple-400 font-black uppercase block">План раундів</label>
+                        <button id="btn-plan-reset" onclick="resetRoundPlanToDefault()" type="button" class="text-[11px] text-zinc-400 hover:text-zinc-200 underline">За замовч.</button>
+                    </div>
+                    <div id="round-plan-list" class="space-y-1.5"></div>
                 </div>
             </div>
 
@@ -206,7 +204,7 @@
                 instructionsLabel: "Як користуватись",
                 instructions: [
                     "Таймер: задайте кількість раундів, тривалість, відпочинок і підготовку. Поля \"Рух\" і \"Вибух\" – для інтервального режиму (0 і 0 – звичайний бій).",
-                    "Дрил: увімкніть перемикач – під час раундів почнуть лунати комбінації. Оберіть тип, інтенсивність (час між повтореннями) і кількість повторів для кожної комбінації.",
+                    "Дрил: увімкніть перемикач – під час раундів почнуть лунати комбінації. У «Плані раундів» призначте свій тип на кожен раунд (напр. 1 – захист, 2 – атака, 3 – контратака, або «без дрилу» для чистого відпочинку між активними раундами). Інтенсивність і кількість повторів – спільні для всіх раундів.",
                     "Як працює дрил: голос озвучує комбінацію українською (наприклад, «один, два бі, три»), потім свисток – виконуйте. Через заданий інтервал – наступний свисток (повторюєте ту ж комбінацію). Після заданої кількості повторів – нова випадкова комбінація.",
                     "Вільний режим: вимикає голос, залишаються лише свистки.",
                     "Позначення ударів (цифри): 1 – лівий джеб, 2 – правий крос, 3 – лівий хук, 4 – правий хук, 5 – лівий аперкот, 6 – правий аперкот, 7 – правий оверхенд, 8 – лівий оверхенд. b після цифри – удар у корпус.",
@@ -228,7 +226,9 @@
                     pause: "ПАУЗА",
                     resume: "ПРОДОВЖИТИ",
                     stop: "СТОП",
-                    startOver: "ПОЧАТИ ЗНОВУ"
+                    startOver: "ПОЧАТИ ЗНОВУ",
+                    drillOn: "Увімк.",
+                    drillOff: "Вимк."
                 },
                 status: {
                     initialTitle: "Гонг Чекає",
@@ -259,7 +259,9 @@
                     defense: "🛡️ Захист",
                     counter: "💥 Контратака",
                     meeting: "🤝 Зустрічна"
-                }
+                },
+                roundPlanLabel: "План раундів",
+                summary: (rounds, active, total) => `Раундів: ${rounds} · Робота: ${active} · Всього: ${total}`
             },
             en: {
                 modalTitle: "Settings",
@@ -267,7 +269,7 @@
                 instructionsLabel: "How to use",
                 instructions: [
                     "Timer: set rounds, duration, rest and prep. 'Move' and 'Burst' – for interval mode (0 and 0 – normal fight).",
-                    "Drill: turn on the switch – combos will be announced during rounds. Choose type, intensity (time between reps) and number of reps for each combo.",
+                    "Drill: turn on the switch – combos will be announced during rounds. In 'Round plan' assign a type to each round (e.g. round 1 – defense, round 2 – attack, round 3 – counter, or 'no drill' for a plain rest round). Intensity and reps apply to all rounds.",
                     "How drill works: voice announces combo as numbers (e.g., 'one, two body, three'), then whistle – perform. After interval, next whistle – repeat same combo. After set reps – new random combo.",
                     "Free mode: no voice, only whistles.",
                     "Punch notation (numbers): 1 – left jab, 2 – right cross, 3 – left hook, 4 – right hook, 5 – left uppercut, 6 – right uppercut, 7 – right overhand, 8 – left overhand. 'b' after number – body punch.",
@@ -289,7 +291,9 @@
                     pause: "PAUSE",
                     resume: "RESUME",
                     stop: "STOP",
-                    startOver: "START OVER"
+                    startOver: "START OVER",
+                    drillOn: "On",
+                    drillOff: "Off"
                 },
                 status: {
                     initialTitle: "Gong Awaits",
@@ -320,7 +324,9 @@
                     defense: "🛡️ Defense",
                     counter: "💥 Counter",
                     meeting: "🤝 Meeting"
-                }
+                },
+                roundPlanLabel: "Round plan",
+                summary: (rounds, active, total) => `Rounds: ${rounds} · Work: ${active} · Total: ${total}`
             }
         };
 
@@ -332,6 +338,7 @@
             document.getElementById('btn-start').innerText = (state.phase === 'FINISHED') ? T.buttons.startOver : T.buttons.start;
             document.getElementById('btn-pause').innerText = state.isPaused ? T.buttons.resume : T.buttons.pause;
             document.getElementById('btn-stop').innerText = T.buttons.stop;
+            document.getElementById('drill-toggle').innerText = drillEnabled ? T.buttons.drillOn : T.buttons.drillOff;
         }
 
         function setLanguage(lang) {
@@ -365,12 +372,8 @@
                 enBtn.className = "flex-1 py-2 rounded-xl font-bold bg-blue-600 text-white";
                 ukBtn.className = "flex-1 py-2 rounded-xl font-bold bg-zinc-800 text-zinc-300";
             }
-            const drillSelect = document.getElementById('drill-type');
-            const drillLabels = t.drillLabels;
-            for (let option of drillSelect.options) {
-                const key = option.value;
-                if (drillLabels[key]) option.text = drillLabels[key];
-            }
+            document.getElementById('label-round-plan').innerText = t.roundPlanLabel;
+            updateRoundPlanLabels();
         }
 
         // ==================== АУДІО ====================
@@ -470,6 +473,69 @@
             ]
         };
 
+        // ==================== ПЛАН РАУНДІВ (Захист / Атака / Контратака / Зустрічна) ====================
+        // Дозволяє призначити свій тип дрилу на кожен раунд окремо,
+        // наприклад: 1 раунд – захист, 2 раунд – атака, 3 раунд – контратака.
+        const DRILL_TYPE_META = {
+            uk: { off: '⏸ Без дрилу', attack: '⚔️ Атака', defense: '🛡️ Захист', counter: '💥 Контратака', meeting: '🤝 Зустрічна' },
+            en: { off: '⏸ No drill', attack: '⚔️ Attack', defense: '🛡️ Defense', counter: '💥 Counter', meeting: '🤝 Meeting' }
+        };
+        const DEFAULT_PLAN_CYCLE = ['defense', 'attack', 'counter'];
+        let roundPlan = [];
+
+        function defaultPlanFor(n) {
+            return Array.from({ length: n }, (_, i) => DEFAULT_PLAN_CYCLE[i % DEFAULT_PLAN_CYCLE.length]);
+        }
+
+        function currentRoundsCount() {
+            return Math.max(1, getInt('input-rounds', 3));
+        }
+
+        function resetRoundPlanToDefault() {
+            roundPlan = defaultPlanFor(currentRoundsCount());
+            renderRoundPlanEditor();
+            saveSettings();
+        }
+
+        // Перебудовує список селектів плану, зберігаючи вже обрані значення
+        // там, де це можливо (якщо змінилась лише кількість раундів).
+        function syncRoundPlanLength() {
+            const n = currentRoundsCount();
+            if (roundPlan.length === n) return;
+            const next = defaultPlanFor(n);
+            for (let i = 0; i < Math.min(roundPlan.length, n); i++) next[i] = roundPlan[i];
+            roundPlan = next;
+        }
+
+        function renderRoundPlanEditor() {
+            syncRoundPlanLength();
+            const list = document.getElementById('round-plan-list');
+            const meta = DRILL_TYPE_META[currentLang];
+            list.innerHTML = roundPlan.map((type, i) => `
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-zinc-400 font-bold w-14 shrink-0">Раунд ${i + 1}</span>
+                    <select data-round-idx="${i}" onchange="onRoundPlanChange(this)" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg p-1 text-white text-sm font-bold">
+                        ${Object.keys(meta).map(key => `<option value="${key}" ${key === type ? 'selected' : ''}>${meta[key]}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('');
+        }
+
+        function onRoundPlanChange(select) {
+            const idx = parseInt(select.dataset.roundIdx);
+            roundPlan[idx] = select.value;
+            saveSettings();
+        }
+
+        function updateRoundPlanLabels() {
+            const meta = DRILL_TYPE_META[currentLang];
+            document.querySelectorAll('#round-plan-list select').forEach(select => {
+                const currentVal = select.value;
+                Array.from(select.options).forEach(opt => { opt.text = meta[opt.value]; });
+                select.value = currentVal;
+            });
+        }
+
         // Функція для перетворення комбінації на голосовий текст українською
         function comboToSpeechUA(combo) {
             const numMap = {
@@ -544,18 +610,23 @@
             const btn = document.getElementById('drill-toggle');
             const controls = document.getElementById('drill-controls');
             if (drillEnabled) {
-                btn.textContent = 'Увімк.';
+                btn.textContent = TRANSLATIONS[currentLang].buttons.drillOn;
                 btn.classList.add('active');
                 controls.style.display = 'flex';
+                document.getElementById('round-plan-wrap').style.display = 'block';
+                if (roundPlan.length === 0) roundPlan = defaultPlanFor(currentRoundsCount());
+                renderRoundPlanEditor();
                 if (state.phase === 'ROUND' && !state.isPaused) {
                     startDrillCycle();
                 }
             } else {
-                btn.textContent = 'Вимк.';
+                btn.textContent = TRANSLATIONS[currentLang].buttons.drillOff;
                 btn.classList.remove('active');
                 controls.style.display = 'none';
+                document.getElementById('round-plan-wrap').style.display = 'none';
                 stopDrillTimer();
             }
+            saveSettings();
         }
 
         function setIntensity(btn, seconds) {
@@ -574,15 +645,20 @@
             drillFree = document.getElementById('drill-free').checked;
         }
 
+        function currentRoundDrillType() {
+            return roundPlan[state.currentRound - 1] || 'off';
+        }
+
         function startDrillCycle() {
             if (!drillEnabled || state.phase !== 'ROUND' || state.isPaused) return;
+            if (currentRoundDrillType() === 'off') { stopDrillTimer(); return; }
             pickNewCombo();
             drillRepetitionCount = 0;
             scheduleNextDrill(500);
         }
 
         function pickNewCombo() {
-            const type = document.getElementById('drill-type').value;
+            const type = currentRoundDrillType();
             const combos = DRILLS[type];
             if (!combos || combos.length === 0) return;
             drillCurrentCombo = combos[Math.floor(Math.random() * combos.length)];
@@ -593,14 +669,51 @@
             }
         }
 
-        function scheduleNextDrill(delay = null) {
+        let drillNextFireAt = 0;
+        let drillPausedRemainingMs = null;
+        let drillPendingCallback = null;
+
+        // Єдиний генерик-шедулер для всіх відкладених кроків дрилу (інтервал між
+        // повторами і пауза перед новою комбінацією), щоб ПАУЗА могла коректно
+        // "заморозити" будь-який з них і продовжити з того самого моменту.
+        function scheduleDrillTimeout(delayMs, callback) {
             if (drillTimerId) clearTimeout(drillTimerId);
+            drillNextFireAt = Date.now() + delayMs;
+            drillPendingCallback = callback;
+            drillTimerId = setTimeout(() => {
+                drillTimerId = null;
+                callback();
+            }, delayMs);
+        }
+
+        function scheduleNextDrill(delay = null) {
             if (delay === null) {
                 delay = (drillRepetitionCount === 0) ? 500 : drillInterval * 1000;
             }
-            drillTimerId = setTimeout(() => {
-                fireDrillSignal();
-            }, delay);
+            scheduleDrillTimeout(delay, fireDrillSignal);
+        }
+
+        // Викликається при ПАУЗІ: запам'ятовує скільки лишилось до наступного
+        // свистка/комбінації, щоб продовжити рівно з того ж місця.
+        function pauseDrillTimer() {
+            if (drillTimerId) {
+                drillPausedRemainingMs = Math.max(0, drillNextFireAt - Date.now());
+            }
+            stopDrillTimer();
+        }
+
+        // Викликається при ПРОДОВЖЕННІ: відновлює той самий відлік/комбінацію
+        // замість того, щоб почати дрил заново.
+        function resumeDrillTimer() {
+            if (!drillEnabled || state.phase !== 'ROUND' || currentRoundDrillType() === 'off') return;
+            if (drillPausedRemainingMs !== null && drillPendingCallback) {
+                const delay = drillPausedRemainingMs;
+                const callback = drillPendingCallback;
+                drillPausedRemainingMs = null;
+                scheduleDrillTimeout(delay, callback);
+            } else if (!drillTimerId) {
+                startDrillCycle();
+            }
         }
 
         function fireDrillSignal() {
@@ -615,13 +728,13 @@
                 if (drillRepetitionCount < drillRepetitions) {
                     scheduleNextDrill();
                 } else {
-                    setTimeout(() => {
+                    scheduleDrillTimeout(1000, () => {
                         if (state.phase === 'ROUND' && !state.isPaused && drillEnabled) {
                             pickNewCombo();
                             drillRepetitionCount = 0;
                             scheduleNextDrill(500);
                         }
-                    }, 1000);
+                    });
                 }
             }
         }
@@ -665,6 +778,10 @@
         let timerInterval = null;
         let wakeLock = null;
         let config = {};
+        let phaseEndAt = 0;
+        let subPhaseEndAt = 0;
+        let pausedPhaseRemainingMs = 0;
+        let pausedSubPhaseRemainingMs = 0;
         let state = {
             phase: 'STOPPED',
             currentRound: 1,
@@ -679,10 +796,14 @@
             return isNaN(val) || val < 0 ? defaultVal : val;
         }
 
-        const SETTINGS_INPUT_IDS = ['input-rounds','input-round-time','input-slow-time','input-fast-time','input-rest-time','input-prepare-time'];
+        const SETTINGS_INPUT_IDS = ['input-rounds','input-round-time','input-slow-time','input-fast-time','input-rest-time','input-prepare-time','input-repeats'];
         function saveSettings() {
             const values = {};
             SETTINGS_INPUT_IDS.forEach(id => { values[id] = document.getElementById(id).value; });
+            values.drillEnabled = drillEnabled;
+            values.drillInterval = drillInterval;
+            values.drillFree = drillFree;
+            values.roundPlan = roundPlan;
             try { localStorage.setItem('boxtimer-settings', JSON.stringify(values)); } catch (e) {}
         }
         function loadSettings() {
@@ -690,10 +811,27 @@
                 const saved = JSON.parse(localStorage.getItem('boxtimer-settings'));
                 if (!saved) return;
                 SETTINGS_INPUT_IDS.forEach(id => { if (saved[id] !== undefined) document.getElementById(id).value = saved[id]; });
+                if (Array.isArray(saved.roundPlan) && saved.roundPlan.length > 0) roundPlan = saved.roundPlan;
+                if (typeof saved.drillInterval === 'number') drillInterval = saved.drillInterval;
+                if (typeof saved.drillFree === 'boolean') {
+                    drillFree = saved.drillFree;
+                    document.getElementById('drill-free').checked = drillFree;
+                }
+                if (saved.drillEnabled) {
+                    document.querySelectorAll('.intensity-btn').forEach(b => {
+                        b.classList.toggle('active', parseInt(b.dataset.intensity) === drillInterval);
+                    });
+                    toggleDrill();
+                }
             } catch (e) {}
         }
         loadSettings();
-        SETTINGS_INPUT_IDS.forEach(id => { document.getElementById(id).addEventListener('change', saveSettings); });
+        SETTINGS_INPUT_IDS.forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                saveSettings();
+                if (id === 'input-rounds' && drillEnabled) renderRoundPlanEditor();
+            });
+        });
 
         function formatTime(s) {
             if (s < 0) s = 0;
@@ -742,8 +880,8 @@
             await requestWakeLock();
 
             config = {
-                rounds: getInt('input-rounds', 3),
-                roundDur: getInt('input-round-time', 180),
+                rounds: Math.max(1, getInt('input-rounds', 3)),
+                roundDur: Math.max(5, getInt('input-round-time', 180)),
                 runDur: getInt('input-slow-time', 0),
                 burstDur: getInt('input-fast-time', 0),
                 prepareDur: getInt('input-prepare-time', 5),
@@ -762,57 +900,77 @@
             state.phase = 'PREPARE';
             state.currentRound = 1;
             state.timeRemaining = config.prepareDur;
+            phaseEndAt = Date.now() + config.prepareDur * 1000;
             updateScreen();
-            timerInterval = setInterval(tick, 1000);
+            timerInterval = setInterval(tick, 200);
         }
 
+        // Таймер рахує не "мінус 1 щосекунди" (це накопичує похибку, якщо вкладка
+        // згорнута/браузер притормозив), а звіряється з абсолютним часом завершення
+        // фази (phaseEndAt / subPhaseEndAt). Це точно і легко ставити на паузу.
         function tick() {
-            state.timeRemaining--;
+            const now = Date.now();
 
             if (state.phase === 'PREPARE') {
-                if (state.timeRemaining > 0) playTick();
-                else startNextRound();
+                const remaining = Math.max(0, Math.ceil((phaseEndAt - now) / 1000));
+                if (remaining !== state.timeRemaining && remaining > 0) playTick();
+                state.timeRemaining = remaining;
+                if (now >= phaseEndAt) { startNextRound(); return; }
             }
             else if (state.phase === 'ROUND') {
-                if (!config.isNormalMode) state.subPhaseTime--;
-                if (state.timeRemaining === 10) play10SecWarning();
+                const remaining = Math.max(0, Math.ceil((phaseEndAt - now) / 1000));
+                const warnNow = remaining !== state.timeRemaining && remaining === 10;
+                state.timeRemaining = remaining;
+                if (warnNow) play10SecWarning();
 
-                if (state.timeRemaining <= 0) {
-                    if (state.currentRound >= config.rounds) finishTraining();
-                    else startRest();
-                } else {
-                    if (!config.isNormalMode && state.subPhaseTime <= 0) {
+                if (!config.isNormalMode) {
+                    const subRemaining = Math.max(0, Math.ceil((subPhaseEndAt - now) / 1000));
+                    state.subPhaseTime = subRemaining;
+                    if (now >= subPhaseEndAt && now < phaseEndAt) {
                         state.isBurst = !state.isBurst;
-                        state.subPhaseTime = state.isBurst ? config.burstDur : config.runDur;
+                        const dur = state.isBurst ? config.burstDur : config.runDur;
+                        subPhaseEndAt = now + dur * 1000;
+                        state.subPhaseTime = dur;
                         playOneWhistle();
                     }
-                    // Якщо дрил увімкнено і немає активного таймера – запустити (але зараз він запускається з затримкою після гонгу)
-                    // Тут ми не запускаємо, щоб не дублювати
+                }
+
+                if (now >= phaseEndAt) {
+                    if (state.currentRound >= config.rounds) { finishTraining(); return; }
+                    else { startRest(); return; }
                 }
             }
             else if (state.phase === 'REST') {
-                if (state.timeRemaining <= 5 && state.timeRemaining > 0) playTick();
-                if (state.timeRemaining <= 0) {
+                const remaining = Math.max(0, Math.ceil((phaseEndAt - now) / 1000));
+                const tickNow = remaining !== state.timeRemaining && remaining <= 5 && remaining > 0;
+                state.timeRemaining = remaining;
+                if (tickNow) playTick();
+                if (now >= phaseEndAt) {
                     state.currentRound++;
                     startNextRound();
+                    return;
                 }
             }
             updateScreen();
         }
 
         function togglePause() {
+            const now = Date.now();
             if (state.isPaused) {
+                // ПРОДОВЖИТИ: зсуваємо дедлайни на стільки, скільки лишалось на паузі
+                phaseEndAt = now + pausedPhaseRemainingMs;
+                if (state.phase === 'ROUND' && !config.isNormalMode) subPhaseEndAt = now + pausedSubPhaseRemainingMs;
                 state.isPaused = false;
-                timerInterval = setInterval(tick, 1000);
-                if (drillEnabled && state.phase === 'ROUND') {
-                    // Якщо дрил був активний, але зупинився, перезапускаємо
-                    if (!drillTimerId) startDrillCycle();
-                }
+                timerInterval = setInterval(tick, 200);
+                resumeDrillTimer();
+                requestWakeLock();
             } else {
+                pausedPhaseRemainingMs = Math.max(0, phaseEndAt - now);
+                if (state.phase === 'ROUND' && !config.isNormalMode) pausedSubPhaseRemainingMs = Math.max(0, subPhaseEndAt - now);
                 state.isPaused = true;
                 clearInterval(timerInterval);
                 timerInterval = null;
-                stopDrillTimer();
+                pauseDrillTimer();
             }
             refreshButtonLabels();
             updateScreen();
@@ -820,7 +978,10 @@
 
         function startNextRound() {
             state.phase = 'ROUND';
+            const now = Date.now();
+            phaseEndAt = now + config.roundDur * 1000;
             state.timeRemaining = config.roundDur;
+            subPhaseEndAt = now + config.runDur * 1000;
             state.subPhaseTime = config.runDur;
             state.isBurst = false;
             stopAllSounds();
@@ -829,7 +990,7 @@
             speak(T.roundTitle(state.currentRound, config.rounds));
 
             // Запускаємо дрил через 1 секунду після гонгу, щоб гонг не заважав голосу
-            if (drillEnabled) {
+            if (drillEnabled && currentRoundDrillType() !== 'off') {
                 setTimeout(() => {
                     if (state.phase === 'ROUND' && !state.isPaused) {
                         startDrillCycle();
@@ -840,6 +1001,7 @@
 
         function startRest() {
             state.phase = 'REST';
+            phaseEndAt = Date.now() + config.restDur * 1000;
             state.timeRemaining = config.restDur;
             stopAllSounds();
             stopDrillTimer();
@@ -852,13 +1014,14 @@
             state.phase = 'FINISHED';
             state.timeRemaining = 0;
             clearInterval(timerInterval);
+            timerInterval = null;
+            if (wakeLock) { wakeLock.release(); wakeLock = null; }
             stopAllSounds();
             stopDrillTimer();
             playApplause();
             speak("Час вийшов! Ай, молодець, гарна робота!");
             const card = document.getElementById('status-card');
             card.classList.add('bg-yellow-600');
-            document.getElementById('round-title').innerText = "🏆 ЧЕМПІОН! 🏆";
             updateScreen();
             document.getElementById('settings-box').classList.remove('hidden');
             document.getElementById('btn-start').classList.remove('hidden');
@@ -867,8 +1030,11 @@
             refreshButtonLabels();
         }
 
-        function stopTraining() {
+        // Реальний стоп (без підтвердження) – викликається лише з stopTraining()
+        // після того, як користувач підтвердив дію під час активного тренування.
+        function doStopTraining() {
             clearInterval(timerInterval);
+            timerInterval = null;
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             stopDrillTimer();
             state.phase = 'STOPPED';
@@ -880,6 +1046,18 @@
             document.getElementById('btn-pause').classList.add('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
             refreshButtonLabels();
+        }
+
+        function stopTraining() {
+            const mid = ['PREPARE', 'ROUND', 'REST'].includes(state.phase);
+            if (mid) {
+                const T = TRANSLATIONS[currentLang];
+                const msg = currentLang === 'uk'
+                    ? 'Зупинити тренування? Прогрес поточної сесії буде втрачено.'
+                    : 'Stop the workout? Progress in this session will be lost.';
+                if (!window.confirm(msg)) return;
+            }
+            doStopTraining();
         }
 
         // ==================== ВІДОБРАЖЕННЯ ====================
@@ -912,6 +1090,9 @@
             }
             else if (state.phase === 'ROUND') {
                 roundTitle.innerText = T.roundTitle(state.currentRound, config.rounds);
+                if (drillEnabled && currentRoundDrillType() !== 'off') {
+                    roundTitle.innerText += ' · ' + DRILL_TYPE_META[currentLang][currentRoundDrillType()];
+                }
                 if (config.isNormalMode) {
                     setStatusPhase('phase-normal');
                     phaseTitle.innerText = T.normalPhase;
@@ -940,7 +1121,9 @@
                 roundTitle.innerText = T.finishedTitle;
                 phaseTitle.innerText = T.finishedSubtitle;
                 timerDisplay.innerText = "00:00";
-                totalTime.innerText = T.greatJob;
+                const activeSec = config.rounds * config.roundDur;
+                const totalSec = activeSec + Math.max(0, config.rounds - 1) * config.restDur + config.prepareDur;
+                totalTime.innerText = T.summary(config.rounds, formatTime(activeSec), formatTime(totalSec));
             }
             else if (state.phase === 'STOPPED') {
                 setStatusPhase('phase-prepare');
@@ -965,6 +1148,15 @@
             }
         });
 
+        // Мобільні браузери самі знімають wake lock, коли вкладку згортають.
+        // Відновлюємо його, щойно користувач повертається, якщо тренування ще триває.
+        document.addEventListener('visibilitychange', () => {
+            const active = ['PREPARE', 'ROUND', 'REST'].includes(state.phase) && !state.isPaused;
+            if (document.visibilityState === 'visible' && active && wakeLock === null) {
+                requestWakeLock();
+            }
+        });
+
         // ==================== SERVICE WORKER ====================
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
@@ -979,7 +1171,10 @@
         // ==================== ІНІЦІАЛІЗАЦІЯ ====================
         setLanguage(currentLang);
         document.querySelector('.intensity-btn.active')?.click();
-        document.getElementById('drill-controls').style.display = 'none';
+        if (!drillEnabled) {
+            document.getElementById('drill-controls').style.display = 'none';
+            document.getElementById('round-plan-wrap').style.display = 'none';
+        }
     </script>
 </body>
 </html>
