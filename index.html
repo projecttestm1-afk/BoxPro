@@ -76,7 +76,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label id="label-rounds" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раундів</label>
-                    <input type="number" id="input-rounds" value="3" min="1" max="30" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
+                    <input type="number" id="input-rounds" value="5" min="1" max="30" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-white font-bold text-lg focus:outline-none focus:border-blue-500 transition-colors">
                 </div>
                 <div>
                     <label id="label-round-time" class="text-xs text-zinc-400 font-black uppercase block mb-1">Раунд (сек)</label>
@@ -239,6 +239,7 @@
                     concentration: "Концентрація",
                     go: "ГО!",
                     roundTitle: (cur, total) => `Раунд ${cur} / ${total}`,
+                    roundStartSpeech: (cur) => `Раунд ${cur}`,
                     normalPhase: "🥊 БІЙ 🥊",
                     burstPhase: "⚡ ВИБУХ (ШВИДКО) ⚡",
                     movePhase: "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️",
@@ -304,6 +305,7 @@
                     concentration: "Focus up",
                     go: "GO!",
                     roundTitle: (cur, total) => `Round ${cur} / ${total}`,
+                    roundStartSpeech: (cur) => `Round ${cur}`,
                     normalPhase: "🥊 FIGHT 🥊",
                     burstPhase: "⚡ BURST (FAST) ⚡",
                     movePhase: "🏃‍♂️ MOVE (EASY) 🏃‍♂️",
@@ -403,6 +405,19 @@
                 audio.volume = 0;
                 audio.play().then(() => { audio.pause(); audio.currentTime = 0; audio.volume = 1; }).catch(() => {});
             });
+            // "Прогріваємо" голосовий рушій прямо на жест користувача (клік СТАРТ).
+            // На iOS/Android голос, який пізніше запускається з таймера (не напряму
+            // по кліку), часто мовчить, якщо рушій жодного разу не активувався
+            // в межах справжньої взаємодії користувача - це і є причина того,
+            // що озвучка інколи працює, а інколи ні.
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.getVoices();
+                    const warm = new SpeechSynthesisUtterance(' ');
+                    warm.volume = 0;
+                    window.speechSynthesis.speak(warm);
+                } catch (e) {}
+            }
             audioUnlocked = true;
         }
 
@@ -428,14 +443,37 @@
         function playApplause() { playSound('applause'); }
 
         // ==================== ГОЛОС ====================
+        // Веб-озвучка (Web Speech API) в Chrome/Android має відомий баг: рушій
+        // "засинає" після ~15с без нових speak() і мовчки ігнорує наступні виклики,
+        // а виклик speak() одразу за cancel() інколи "проковтується". Це і є причина
+        // того, що озвучка раундів то працює, то ні. Нижче - обхід цих багів.
         function speak(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
+            if (!('speechSynthesis' in window)) return;
+            try {
+                const synth = window.speechSynthesis;
+                if (synth.paused) synth.resume();
+                synth.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
                 utterance.rate = 1.1;
-                window.speechSynthesis.speak(utterance);
-            }
+                utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
+                // Невелика затримка після cancel() - інакше speak() інколи
+                // "проковтується" рушієм і звуку просто не буде.
+                setTimeout(() => {
+                    try { synth.speak(utterance); } catch (e) { console.log('Помилка озвучки:', e); }
+                }, 60);
+            } catch (e) { console.log('Помилка озвучки:', e); }
+        }
+
+        let speechKeepAliveId = null;
+        function startSpeechKeepAlive() {
+            if (!('speechSynthesis' in window) || speechKeepAliveId) return;
+            speechKeepAliveId = setInterval(() => {
+                try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch (e) {}
+            }, 4000);
+        }
+        function stopSpeechKeepAlive() {
+            if (speechKeepAliveId) { clearInterval(speechKeepAliveId); speechKeepAliveId = null; }
         }
 
         // ==================== ДРИЛ (ОЗВУЧУЄМО УКРАЇНСЬКОЮ) ====================
@@ -903,6 +941,7 @@
             phaseEndAt = Date.now() + config.prepareDur * 1000;
             updateScreen();
             timerInterval = setInterval(tick, 200);
+            startSpeechKeepAlive();
         }
 
         // Таймер рахує не "мінус 1 щосекунди" (це накопичує похибку, якщо вкладка
@@ -987,7 +1026,7 @@
             stopAllSounds();
             playGong();
             const T = TRANSLATIONS[currentLang].status;
-            speak(T.roundTitle(state.currentRound, config.rounds));
+            speak(T.roundStartSpeech(state.currentRound));
 
             // Запускаємо дрил через 1 секунду після гонгу, щоб гонг не заважав голосу
             if (drillEnabled && currentRoundDrillType() !== 'off') {
@@ -1018,6 +1057,7 @@
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             stopAllSounds();
             stopDrillTimer();
+            stopSpeechKeepAlive();
             playApplause();
             speak("Час вийшов! Ай, молодець, гарна робота!");
             const card = document.getElementById('status-card');
@@ -1037,6 +1077,7 @@
             timerInterval = null;
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
             stopDrillTimer();
+            stopSpeechKeepAlive();
             state.phase = 'STOPPED';
             state.isPaused = false;
             updateScreen();
