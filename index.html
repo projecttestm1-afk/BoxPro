@@ -443,26 +443,44 @@
         function playApplause() { playSound('applause'); }
 
         // ==================== ГОЛОС ====================
-        // Веб-озвучка (Web Speech API) в Chrome/Android має відомий баг: рушій
-        // "засинає" після ~15с без нових speak() і мовчки ігнорує наступні виклики,
-        // а виклик speak() одразу за cancel() інколи "проковтується". Це і є причина
-        // того, що озвучка раундів то працює, то ні. Нижче - обхід цих багів.
+        // Веб-озвучка (Web Speech API) в Chrome/Android має два відомі баги:
+        // 1) рушій "засинає" після паузи/бездіяльності і мовчки ігнорує speak();
+        // 2) якщо speak() викликати одразу за cancel(), виклик інколи "проковтується".
+        // Раніше через це, коли дві репліки йшли близько одна за одною (напр. анонс
+        // раунду і за секунду - комбінація дрилу), друга не встигала реально
+        // скасувати першу (та ще чекала у своєму таймауті) - і обидві або
+        // накладались, або губились. Тепер: скасовуємо будь-яку ще незапущену
+        // репліку, а реальний cancel() робимо ПРЯМО перед фактичним speak(),
+        // плюс watchdog перезапускає озвучку, якщо рушій за 700мс так і не почав.
+        let pendingSpeechId = null;
         function speak(text) {
             if (!('speechSynthesis' in window)) return;
-            try {
-                const synth = window.speechSynthesis;
-                if (synth.paused) synth.resume();
-                synth.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
-                utterance.rate = 1.1;
-                utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
-                // Невелика затримка після cancel() - інакше speak() інколи
-                // "проковтується" рушієм і звуку просто не буде.
-                setTimeout(() => {
-                    try { synth.speak(utterance); } catch (e) { console.log('Помилка озвучки:', e); }
-                }, 60);
-            } catch (e) { console.log('Помилка озвучки:', e); }
+            const synth = window.speechSynthesis;
+            if (pendingSpeechId) { clearTimeout(pendingSpeechId); pendingSpeechId = null; }
+            try { if (synth.paused) synth.resume(); synth.cancel(); } catch (e) {}
+            pendingSpeechId = setTimeout(() => {
+                pendingSpeechId = null;
+                try {
+                    if (synth.paused) synth.resume();
+                    synth.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
+                    utterance.rate = 1.1;
+                    let started = false;
+                    utterance.onstart = () => { started = true; };
+                    utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
+                    synth.speak(utterance);
+                    // Якщо рушій за 700мс так і не почав говорити (справжнє
+                    // "засинання") - примусово скидаємо і пробуємо ще раз.
+                    // Перевіряємо саме подію onstart, а не synth.speaking, щоб
+                    // не повторювати вже успішно сказану коротку фразу.
+                    setTimeout(() => {
+                        if (!started) {
+                            try { synth.cancel(); synth.speak(utterance); } catch (e) {}
+                        }
+                    }, 700);
+                } catch (e) { console.log('Помилка озвучки:', e); }
+            }, 60);
         }
 
         let speechKeepAliveId = null;
