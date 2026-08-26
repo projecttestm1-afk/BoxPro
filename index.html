@@ -49,6 +49,15 @@
         .music-btn:hover { background: #3d3d3d; }
         .music-btn.playing { background: #22c55e; color: #000; }
         #music-volume { width: 60px; accent-color: #22c55e; }
+
+        .combo-tab-btn { background: #1e293b; border: 1px solid #334155; padding: 0.4rem 0.8rem; border-radius: 1.5rem; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #cbd5e1; transition: all 0.15s; }
+        .combo-tab-btn.active { background: #7c3aed; border-color: #a78bfa; color: #fff; }
+        .combo-punch-btn { background: #1e1e1e; border: 1px solid #3a3a3a; color: #fff; border-radius: 0.75rem; padding: 0.6rem 0; font-weight: 900; font-size: 1.1rem; cursor: pointer; transition: all 0.1s; }
+        .combo-punch-btn:active { transform: scale(0.92); background: #7c3aed; }
+        .combo-mod-btn { background: #1e1e1e; border: 1px solid #3a3a3a; color: #cbd5e1; border-radius: 1.5rem; padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: bold; cursor: pointer; }
+        .combo-mod-btn.active { background: #dc2626; border-color: #f87171; color: #fff; }
+        .combo-move-btn { background: #1e1e1e; border: 1px solid #3a3a3a; color: #cbd5e1; border-radius: 1.5rem; padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: bold; cursor: pointer; }
+        .combo-move-btn:active { background: #7c3aed; color: #fff; }
     </style>
 
     <script data-goatcounter="https://ЗАМІНИ-МЕНЕ.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -59,6 +68,7 @@
 
         <div class="flex justify-between items-center mb-4">
             <button id="btn-expand" onclick="toggleFullscreenView()" title="Розтягнути на весь екран" class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⤢</button>
+            <button id="btn-combos" onclick="openCombosModal()" title="Комбінації" class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">🥊</button>
             <button id="btn-gear" onclick="openSettingsModal()" title="Налаштування" class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-lg transition-colors">⚙️</button>
         </div>
 
@@ -184,6 +194,54 @@
                     <span id="modal-author-label">Автор</span>:
                     <a href="https://github.com/projecttestm1-afk/boxing-timer" target="_blank" rel="noopener" class="underline hover:text-zinc-400">GitHub</a>
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка бібліотеки комбінацій -->
+    <div id="combos-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 rounded-3xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto border border-zinc-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-black uppercase">Комбінації</h3>
+                <button onclick="closeCombosModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300">✕</button>
+            </div>
+            <p class="text-xs text-zinc-500 mb-3">Вимикай/вмикай наявні комбінації або додавай свої кнопками нижче - без коду.</p>
+
+            <div class="flex gap-1.5 mb-3 flex-wrap">
+                <button type="button" class="combo-tab-btn" data-type="attack" onclick="setComboBuilderType('attack')">⚔️ Атака</button>
+                <button type="button" class="combo-tab-btn" data-type="defense" onclick="setComboBuilderType('defense')">🛡️ Захист</button>
+                <button type="button" class="combo-tab-btn" data-type="counter" onclick="setComboBuilderType('counter')">💥 Контратака</button>
+                <button type="button" class="combo-tab-btn" data-type="meeting" onclick="setComboBuilderType('meeting')">🤝 Зустрічна</button>
+            </div>
+
+            <div id="combo-list" class="space-y-1.5 mb-4"></div>
+
+            <div class="border-t border-zinc-800 pt-4">
+                <p class="text-xs text-purple-400 font-black uppercase mb-2">Конструктор нової комбінації</p>
+                <div class="grid grid-cols-4 gap-1.5 mb-2">
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(1)">1</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(2)">2</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(3)">3</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(4)">4</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(5)">5</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(6)">6</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(7)">7</button>
+                    <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(8)">8</button>
+                </div>
+                <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+                    <button type="button" id="combo-builder-body-btn" class="combo-mod-btn" onclick="comboBuilderToggleBody()">🥋 Тіло (для наступного удару)</button>
+                </div>
+                <div id="combo-builder-moves" class="flex items-center gap-1.5 mb-3 flex-wrap">
+                    <button type="button" class="combo-move-btn" onclick="comboBuilderAddMove('Ухил')">Ухил</button>
+                    <button type="button" class="combo-move-btn" onclick="comboBuilderAddMove('Блок')">Блок</button>
+                    <button type="button" class="combo-move-btn" onclick="comboBuilderAddMove('Відхід')">Відхід</button>
+                </div>
+                <div id="combo-builder-preview" class="bg-zinc-800/60 rounded-xl px-3 py-2 text-sm font-bold text-zinc-300 mb-2 min-h-[2.5rem] flex items-center">— обери удари нижче —</div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="comboBuilderUndo()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2 rounded-xl text-sm">⌫ Скасувати</button>
+                    <button type="button" onclick="comboBuilderClear()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2 rounded-xl text-sm">Очистити</button>
+                    <button type="button" id="btn-combo-save" onclick="comboBuilderSave()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed" disabled>💾 Зберегти</button>
+                </div>
             </div>
         </div>
     </div>
@@ -653,6 +711,139 @@
             }
         }
 
+        // ==================== БІБЛІОТЕКА КОМБІНАЦІЙ (редагування без коду) ====================
+        // Дозволяє вимикати/вмикати наявні комбінації та додавати власні через
+        // конструктор кнопками (без ручного вводу тексту), прямо в застосунку.
+        const DRILL_TYPES = ['attack', 'defense', 'counter', 'meeting'];
+        const COMBO_MOVE_LABELS = ['Ухил', 'Блок', 'Відхід'];
+        let comboLibrary = {};   // { type: [{text, custom}] }
+        let comboEnabled = {};   // { type: Set(text) }
+        DRILL_TYPES.forEach(type => {
+            comboLibrary[type] = DRILLS[type].map(text => ({ text, custom: false }));
+            comboEnabled[type] = new Set(DRILLS[type]);
+        });
+
+        // Пул, з якого реально обираються комбінації під час дрилу. Якщо
+        // користувач вимкнув усі комбінації в категорії - підстраховка:
+        // повертаємось до стандартного набору, щоб дрил не "завис" без комбінацій.
+        function getActiveComboPool(type) {
+            const lib = comboLibrary[type] || [];
+            const active = lib.filter(c => comboEnabled[type].has(c.text)).map(c => c.text);
+            return active.length > 0 ? active : DRILLS[type];
+        }
+
+        let comboBuilderType = 'attack';
+        let comboBuilderTokens = [];
+        let comboBuilderBodyNext = false;
+
+        function openCombosModal() {
+            document.getElementById('combos-modal').classList.remove('hidden');
+            renderCombosModal();
+        }
+        function closeCombosModal() {
+            document.getElementById('combos-modal').classList.add('hidden');
+        }
+
+        function setComboBuilderType(type) {
+            comboBuilderType = type;
+            comboBuilderTokens = [];
+            comboBuilderBodyNext = false;
+            renderCombosModal();
+        }
+
+        function comboBuilderAddPunch(n) {
+            comboBuilderTokens.push(comboBuilderBodyNext ? (n + 'b') : String(n));
+            comboBuilderBodyNext = false;
+            renderComboBuilderPreview();
+        }
+        function comboBuilderAddMove(word) {
+            comboBuilderTokens.push(word);
+            renderComboBuilderPreview();
+        }
+        function comboBuilderToggleBody() {
+            comboBuilderBodyNext = !comboBuilderBodyNext;
+            renderComboBuilderPreview();
+        }
+        function comboBuilderUndo() {
+            comboBuilderTokens.pop();
+            renderComboBuilderPreview();
+        }
+        function comboBuilderClear() {
+            comboBuilderTokens = [];
+            comboBuilderBodyNext = false;
+            renderComboBuilderPreview();
+        }
+        function comboBuilderSave() {
+            if (comboBuilderTokens.length === 0) return;
+            const text = comboBuilderTokens.join(', ');
+            const type = comboBuilderType;
+            if (!comboLibrary[type].some(c => c.text === text)) {
+                comboLibrary[type].push({ text, custom: true });
+            }
+            comboEnabled[type].add(text);
+            comboBuilderClear();
+            saveSettings();
+            renderCombosModal();
+        }
+
+        function toggleComboEnabled(type, text, checked) {
+            if (checked) comboEnabled[type].add(text); else comboEnabled[type].delete(text);
+            saveSettings();
+        }
+        function deleteCustomCombo(type, text) {
+            comboLibrary[type] = comboLibrary[type].filter(c => c.text !== text);
+            comboEnabled[type].delete(text);
+            saveSettings();
+            renderCombosModal();
+        }
+
+        function renderCombosModal() {
+            document.querySelectorAll('.combo-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === comboBuilderType);
+            });
+            // Кнопки "Ухил/Блок/Відхід" доречні переважно для захисту й
+            // контратаки - для атаки/зустрічної ховаємо, щоб не плутати.
+            const showMoves = comboBuilderType === 'defense' || comboBuilderType === 'counter';
+            document.getElementById('combo-builder-moves').style.display = showMoves ? 'flex' : 'none';
+
+            const list = document.getElementById('combo-list');
+            const type = comboBuilderType;
+            list.innerHTML = comboLibrary[type].map((c, i) => {
+                const on = comboEnabled[type].has(c.text);
+                return `
+                <label class="flex items-center justify-between gap-2 bg-zinc-800/60 rounded-xl px-3 py-2" data-combo-idx="${i}">
+                    <span class="flex items-center gap-2 text-sm font-bold ${on ? 'text-white' : 'text-zinc-500 line-through'}">
+                        <input type="checkbox" class="combo-enable-cb" data-idx="${i}" ${on ? 'checked' : ''}>
+                        <span>${c.text}</span>
+                    </span>
+                    ${c.custom ? `<button type="button" class="combo-delete-btn text-red-400 text-xs px-1" data-idx="${i}">✕</button>` : ''}
+                </label>`;
+            }).join('');
+            list.querySelectorAll('.combo-enable-cb').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const c = comboLibrary[type][parseInt(cb.dataset.idx)];
+                    toggleComboEnabled(type, c.text, cb.checked);
+                    renderCombosModal();
+                });
+            });
+            list.querySelectorAll('.combo-delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const c = comboLibrary[type][parseInt(btn.dataset.idx)];
+                    deleteCustomCombo(type, c.text);
+                });
+            });
+            renderComboBuilderPreview();
+        }
+
+        function renderComboBuilderPreview() {
+            const preview = document.getElementById('combo-builder-preview');
+            preview.textContent = comboBuilderTokens.length
+                ? comboBuilderTokens.join(', ') + (comboBuilderBodyNext ? ' + бі…' : '')
+                : '— обери удари нижче —';
+            document.getElementById('combo-builder-body-btn').classList.toggle('active', comboBuilderBodyNext);
+            document.getElementById('btn-combo-save').disabled = comboBuilderTokens.length === 0;
+        }
+
         let drillEnabled = false;
         let drillInterval = 10;
         let drillFree = false;
@@ -715,7 +906,7 @@
 
         function pickNewCombo() {
             const type = currentRoundDrillType();
-            const combos = DRILLS[type];
+            const combos = getActiveComboPool(type);
             if (!combos || combos.length === 0) return;
             drillCurrentCombo = combos[Math.floor(Math.random() * combos.length)];
             drillRepetitions = parseInt(document.getElementById('input-repeats').value) || 3;
@@ -860,6 +1051,14 @@
             values.drillInterval = drillInterval;
             values.drillFree = drillFree;
             values.roundPlan = roundPlan;
+            values.comboCustom = {};
+            values.comboDisabled = {};
+            DRILL_TYPES.forEach(type => {
+                values.comboCustom[type] = comboLibrary[type].filter(c => c.custom).map(c => c.text);
+                values.comboDisabled[type] = comboLibrary[type]
+                    .filter(c => !comboEnabled[type].has(c.text))
+                    .map(c => c.text);
+            });
             try { localStorage.setItem('boxtimer-settings', JSON.stringify(values)); } catch (e) {}
         }
         function loadSettings() {
@@ -872,6 +1071,21 @@
                 if (typeof saved.drillFree === 'boolean') {
                     drillFree = saved.drillFree;
                     document.getElementById('drill-free').checked = drillFree;
+                }
+                if (saved.comboCustom) {
+                    DRILL_TYPES.forEach(type => {
+                        (saved.comboCustom[type] || []).forEach(text => {
+                            if (!comboLibrary[type].some(c => c.text === text)) {
+                                comboLibrary[type].push({ text, custom: true });
+                            }
+                            comboEnabled[type].add(text);
+                        });
+                    });
+                }
+                if (saved.comboDisabled) {
+                    DRILL_TYPES.forEach(type => {
+                        (saved.comboDisabled[type] || []).forEach(text => comboEnabled[type].delete(text));
+                    });
                 }
                 if (saved.drillEnabled) {
                     document.querySelectorAll('.intensity-btn').forEach(b => {
