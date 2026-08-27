@@ -218,7 +218,7 @@
 
             <div class="border-t border-zinc-800 pt-4">
                 <p class="text-xs text-purple-400 font-black uppercase mb-2">Конструктор нової комбінації</p>
-                <div class="grid grid-cols-4 gap-1.5 mb-2">
+                <div id="combo-builder-punches" class="grid grid-cols-4 gap-1.5 mb-2">
                     <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(1)">1</button>
                     <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(2)">2</button>
                     <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(3)">3</button>
@@ -228,7 +228,7 @@
                     <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(7)">7</button>
                     <button type="button" class="combo-punch-btn" onclick="comboBuilderAddPunch(8)">8</button>
                 </div>
-                <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+                <div id="combo-builder-body-row" class="flex items-center gap-1.5 mb-2 flex-wrap">
                     <button type="button" id="combo-builder-body-btn" class="combo-mod-btn" onclick="comboBuilderToggleBody()">🥋 Тіло (для наступного удару)</button>
                 </div>
                 <div id="combo-builder-moves" class="flex items-center gap-1.5 mb-3 flex-wrap">
@@ -511,34 +511,44 @@
         // репліку, а реальний cancel() робимо ПРЯМО перед фактичним speak(),
         // плюс watchdog перезапускає озвучку, якщо рушій за 700мс так і не почав.
         let pendingSpeechId = null;
+        let speechCallToken = 0;
         function speak(text) {
             if (!('speechSynthesis' in window)) return;
             const synth = window.speechSynthesis;
+            const myToken = ++speechCallToken;
             if (pendingSpeechId) { clearTimeout(pendingSpeechId); pendingSpeechId = null; }
             try { if (synth.paused) synth.resume(); synth.cancel(); } catch (e) {}
             pendingSpeechId = setTimeout(() => {
                 pendingSpeechId = null;
-                try {
-                    if (synth.paused) synth.resume();
-                    synth.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
-                    utterance.rate = 1.1;
-                    let started = false;
-                    utterance.onstart = () => { started = true; };
-                    utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
-                    synth.speak(utterance);
-                    // Якщо рушій за 700мс так і не почав говорити (справжнє
-                    // "засинання") - примусово скидаємо і пробуємо ще раз.
-                    // Перевіряємо саме подію onstart, а не synth.speaking, щоб
-                    // не повторювати вже успішно сказану коротку фразу.
-                    setTimeout(() => {
-                        if (!started) {
-                            try { synth.cancel(); synth.speak(utterance); } catch (e) {}
-                        }
-                    }, 700);
-                } catch (e) { console.log('Помилка озвучки:', e); }
+                speakNow(text, myToken);
             }, 60);
+        }
+
+        function speakNow(text, myToken) {
+            const synth = window.speechSynthesis;
+            try {
+                if (synth.paused) synth.resume();
+                synth.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLang === 'uk' ? 'uk-UA' : 'en-US';
+                utterance.rate = 1.1;
+                let started = false;
+                utterance.onstart = () => { started = true; };
+                utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
+                synth.speak(utterance);
+                // Якщо рушій за 700мс так і не почав говорити (справжнє
+                // "засинання") - пробуємо ще раз, але ЛИШЕ якщо це досі
+                // останній запит на озвучку (інакше застарілий watchdog може
+                // перебити вже свіжішу репліку) і з НОВИМ об'єктом utterance
+                // (браузери інколи мовчки відмовляються повторно озвучити
+                // той самий вже відправлений об'єкт).
+                setTimeout(() => {
+                    if (!started && myToken === speechCallToken) {
+                        try { synth.cancel(); } catch (e) {}
+                        speakNow(text, myToken);
+                    }
+                }, 700);
+            } catch (e) { console.log('Помилка озвучки:', e); }
         }
 
         let speechKeepAliveId = null;
@@ -568,10 +578,12 @@
                 "1, 2b, 3b, 4"
             ],
             defense: [
-                "Ухил, блок, 2",
-                "Відхід, 1, 2",
-                "Блок, 3",
-                "Ухил, 2, 3"
+                "Ухил",
+                "Блок",
+                "Відхід",
+                "Ухил, блок",
+                "Блок, відхід",
+                "Відхід, ухил"
             ],
             counter: [
                 "Блок, 2",
@@ -805,6 +817,12 @@
             // контратаки - для атаки/зустрічної ховаємо, щоб не плутати.
             const showMoves = comboBuilderType === 'defense' || comboBuilderType === 'counter';
             document.getElementById('combo-builder-moves').style.display = showMoves ? 'flex' : 'none';
+            // Захист - це чиста оборона без ударів (на відміну від контратаки),
+            // тож на цій вкладці ховаємо удари й "тіло", щоб конструктор не
+            // дозволяв випадково зробити захист невідрізнимим від контратаки.
+            const showPunches = comboBuilderType !== 'defense';
+            document.getElementById('combo-builder-punches').style.display = showPunches ? 'grid' : 'none';
+            document.getElementById('combo-builder-body-row').style.display = showPunches ? 'flex' : 'none';
 
             const list = document.getElementById('combo-list');
             const type = comboBuilderType;
