@@ -297,7 +297,7 @@
                     concentration: "Концентрація",
                     go: "ГО!",
                     roundTitle: (cur, total) => `Раунд ${cur} / ${total}`,
-                    roundStartSpeech: (cur) => `Раунд ${cur}`,
+                    roundStartSpeech: (cur, typeLabel) => typeLabel ? `Раунд ${cur}. ${typeLabel}` : `Раунд ${cur}`,
                     normalPhase: "🥊 БІЙ 🥊",
                     burstPhase: "⚡ ВИБУХ (ШВИДКО) ⚡",
                     movePhase: "🏃‍♂️ РУХ (ЛЕГКО) 🏃‍♂️",
@@ -363,7 +363,7 @@
                     concentration: "Focus up",
                     go: "GO!",
                     roundTitle: (cur, total) => `Round ${cur} / ${total}`,
-                    roundStartSpeech: (cur) => `Round ${cur}`,
+                    roundStartSpeech: (cur, typeLabel) => typeLabel ? `Round ${cur}. ${typeLabel}` : `Round ${cur}`,
                     normalPhase: "🥊 FIGHT 🥊",
                     burstPhase: "⚡ BURST (FAST) ⚡",
                     movePhase: "🏃‍♂️ MOVE (EASY) 🏃‍♂️",
@@ -605,6 +605,11 @@
         const DRILL_TYPE_META = {
             uk: { off: '⏸ Без дрилу', attack: '⚔️ Атака', defense: '🛡️ Захист', counter: '💥 Контратака', meeting: '🤝 Зустрічна' },
             en: { off: '⏸ No drill', attack: '⚔️ Attack', defense: '🛡️ Defense', counter: '💥 Counter', meeting: '🤝 Meeting' }
+        };
+        // Ті самі типи дрилу, але без емодзі - для голосового анонсу раунду.
+        const DRILL_TYPE_SPEECH = {
+            uk: { off: '', attack: 'Атака', defense: 'Захист', counter: 'Контратака', meeting: 'Зустрічна' },
+            en: { off: '', attack: 'Attack', defense: 'Defense', counter: 'Counter', meeting: 'Meeting' }
         };
         const DEFAULT_PLAN_CYCLE = ['defense', 'attack', 'counter'];
         let roundPlan = [];
@@ -1276,7 +1281,9 @@
             stopAllSounds();
             playGong();
             const T = TRANSLATIONS[currentLang].status;
-            speak(T.roundStartSpeech(state.currentRound));
+            const drillType = currentRoundDrillType();
+            const typeLabel = (drillEnabled && drillType !== 'off') ? DRILL_TYPE_SPEECH[currentLang][drillType] : '';
+            speak(T.roundStartSpeech(state.currentRound, typeLabel));
 
             // Запускаємо дрил через 1 секунду після гонгу, щоб гонг не заважав голосу
             if (drillEnabled && currentRoundDrillType() !== 'off') {
