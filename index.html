@@ -510,22 +510,30 @@
         // накладались, або губились. Тепер: скасовуємо будь-яку ще незапущену
         // репліку, а реальний cancel() робимо ПРЯМО перед фактичним speak(),
         // плюс watchdog перезапускає озвучку, якщо рушій за 700мс так і не почав.
+        // Додатково: speak() приймає опційний onDone - викликається, коли фраза
+        // РЕАЛЬНО договорила (подія 'end'), щоб наступна дія (напр. старт дрилу)
+        // не обривала довшу репліку на середині фіксованою затримкою навмання.
         let pendingSpeechId = null;
         let speechCallToken = 0;
-        function speak(text) {
-            if (!('speechSynthesis' in window)) return;
+        function speak(text, onDone) {
+            if (!('speechSynthesis' in window)) { if (onDone) onDone(); return; }
             const synth = window.speechSynthesis;
             const myToken = ++speechCallToken;
             if (pendingSpeechId) { clearTimeout(pendingSpeechId); pendingSpeechId = null; }
             try { if (synth.paused) synth.resume(); synth.cancel(); } catch (e) {}
             pendingSpeechId = setTimeout(() => {
                 pendingSpeechId = null;
-                speakNow(text, myToken);
+                speakNow(text, myToken, { done: false }, onDone);
             }, 60);
         }
 
-        function speakNow(text, myToken) {
+        function speakNow(text, myToken, doneState, onDone) {
             const synth = window.speechSynthesis;
+            const finish = () => {
+                if (doneState.done) return;
+                doneState.done = true;
+                if (onDone) onDone();
+            };
             try {
                 if (synth.paused) synth.resume();
                 synth.cancel();
@@ -534,7 +542,8 @@
                 utterance.rate = 1.1;
                 let started = false;
                 utterance.onstart = () => { started = true; };
-                utterance.onerror = (e) => console.log('Помилка озвучки:', e.error);
+                utterance.onend = finish;
+                utterance.onerror = (e) => { console.log('Помилка озвучки:', e.error); finish(); };
                 synth.speak(utterance);
                 // Якщо рушій за 700мс так і не почав говорити (справжнє
                 // "засинання") - пробуємо ще раз, але ЛИШЕ якщо це досі
@@ -543,12 +552,17 @@
                 // (браузери інколи мовчки відмовляються повторно озвучити
                 // той самий вже відправлений об'єкт).
                 setTimeout(() => {
-                    if (!started && myToken === speechCallToken) {
+                    if (!started && myToken === speechCallToken && !doneState.done) {
                         try { synth.cancel(); } catch (e) {}
-                        speakNow(text, myToken);
+                        speakNow(text, myToken, doneState, onDone);
                     }
                 }, 700);
-            } catch (e) { console.log('Помилка озвучки:', e); }
+                // Аварійний запобіжник: якщо подія 'end' з якоїсь причини не
+                // прийшла - все одно звільняємо onDone, щоб застосунок не завис
+                // (напр. дрил так і не стартував би після анонсу раунду).
+                const maxWait = 3500 + text.length * 90;
+                setTimeout(finish, maxWait);
+            } catch (e) { console.log('Помилка озвучки:', e); finish(); }
         }
 
         let speechKeepAliveId = null;
@@ -1283,16 +1297,16 @@
             const T = TRANSLATIONS[currentLang].status;
             const drillType = currentRoundDrillType();
             const typeLabel = (drillEnabled && drillType !== 'off') ? DRILL_TYPE_SPEECH[currentLang][drillType] : '';
-            speak(T.roundStartSpeech(state.currentRound, typeLabel));
-
-            // Запускаємо дрил через 1 секунду після гонгу, щоб гонг не заважав голосу
-            if (drillEnabled && currentRoundDrillType() !== 'off') {
-                setTimeout(() => {
-                    if (state.phase === 'ROUND' && !state.isPaused) {
-                        startDrillCycle();
-                    }
-                }, 1000);
-            }
+            speak(T.roundStartSpeech(state.currentRound, typeLabel), () => {
+                // Стартуємо дрил лише коли анонс раунду РЕАЛЬНО договорив -
+                // раніше фіксована затримка в 1с обривала довшу фразу
+                // ("Раунд 3. Контратака") посеред слова.
+                if (drillEnabled && currentRoundDrillType() !== 'off' && state.phase === 'ROUND' && !state.isPaused) {
+                    setTimeout(() => {
+                        if (state.phase === 'ROUND' && !state.isPaused) startDrillCycle();
+                    }, 250);
+                }
+            });
         }
 
         function startRest() {
